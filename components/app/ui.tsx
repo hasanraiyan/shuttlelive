@@ -37,7 +37,7 @@ export function Label({ htmlFor, children, hint }: { htmlFor: string; children: 
   );
 }
 
-export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return <input {...props} className={cn(fieldClass, "h-10", className)} />;
 }
 

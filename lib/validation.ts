@@ -71,23 +71,6 @@ export const playerSchema = z.object({
   club: optionalText(80, "Club"),
 });
 
-/** "Name, Club" per line. */
-export function parsePlayerLines(text: string) {
-  const rows = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .slice(0, 500);
-  const players: { name: string; club: string | null }[] = [];
-  for (const row of rows) {
-    const [name, ...rest] = row.split(",");
-    const parsed = playerSchema.safeParse({ name, club: rest.join(",").trim() || undefined });
-    if (!parsed.success) return { error: `Check the line "${row.slice(0, 40)}": ${parsed.error.issues[0].message}` };
-    players.push(parsed.data);
-  }
-  return { players };
-}
-
 export function firstError(e: z.ZodError) {
   return e.issues[0]?.message ?? "Check the form and try again.";
 }

@@ -4,29 +4,13 @@ import { requireUser } from "@/lib/auth";
 import { tournamentChanged } from "@/lib/revalidate";
 import { explainDbError } from "@/lib/scoring";
 import type { ActionResult } from "@/lib/types";
-import { categorySchema, courtNameSchema, firstError, parsePlayerLines, playerSchema, uuid } from "@/lib/validation";
+import { categorySchema, courtNameSchema, firstError, playerSchema, uuid } from "@/lib/validation";
 import { z } from "zod";
 
 const refresh = (tid: string) => tournamentChanged(tid);
 const bad = (msg = "Invalid request.") => ({ ok: false as const, error: msg });
 
 // ── Players ────────────────────────────────────────────────────────────────
-
-export async function addPlayers(tid: string, _prev: ActionResult, fd: FormData): Promise<ActionResult> {
-  if (!uuid.safeParse(tid).success) return bad();
-  const result = parsePlayerLines(String(fd.get("players") ?? ""));
-  if ("error" in result) return bad(result.error);
-  if (!result.players.length) return bad("Type at least one player name.");
-
-  const { supabase } = await requireUser();
-  const { error } = await supabase
-    .from("players")
-    .insert(result.players.map((p) => ({ ...p, tournament_id: tid })));
-  if (error) return bad(explainDbError(error.message));
-  refresh(tid);
-  const n = result.players.length;
-  return { ok: true, message: `Added ${n} player${n === 1 ? "" : "s"}.` };
-}
 
 export async function updatePlayer(tid: string, playerId: string, input: { name: string; club?: string }): Promise<ActionResult> {
   if (!uuid.safeParse(tid).success || !uuid.safeParse(playerId).success) return bad();
@@ -241,4 +225,24 @@ export async function scheduleMatch(tid: string, matchId: string, iso: string | 
   if (error) return bad(explainDbError(error.message));
   refresh(tid);
   return { ok: true };
+}
+
+const playerRowsSchema = z
+  .array(playerSchema)
+  .min(1, "Type at least one player name.")
+  .max(200, "Add up to 200 players at a time.");
+
+/** Adds players from the add-players table (empty rows are dropped before sending). */
+export async function addPlayerRows(tid: string, rows: { name: string; club?: string }[]): Promise<ActionResult> {
+  if (!uuid.safeParse(tid).success) return bad();
+  const parsed = playerRowsSchema.safeParse(rows);
+  if (!parsed.success) return bad(firstError(parsed.error));
+  const { supabase } = await requireUser();
+  const { error } = await supabase
+    .from("players")
+    .insert(parsed.data.map((p) => ({ tournament_id: tid, name: p.name, club: p.club })));
+  if (error) return bad(explainDbError(error.message));
+  refresh(tid);
+  const n = parsed.data.length;
+  return { ok: true, message: `Added ${n} player${n === 1 ? "" : "s"}.` };
 }
