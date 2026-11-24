@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Fonts are named here; how they are used is set in app/theme.css.
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s · ShuttleLive",
   },
   description:
-    "Run a badminton tournament end to end: draws, court schedules, one-tap umpire scoring and a live public page for every event.",
+    "Run a badminton tournament end to end: draws, court schedules, one-tap scoring and a live public page for every event.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${text.variable} ${condensed.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <Analytics />
       </body>
     </html>
   );
