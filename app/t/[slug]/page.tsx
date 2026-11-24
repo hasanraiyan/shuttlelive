@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
+import { LocalTime } from "@/components/app/local-time";
 import { Logo } from "@/components/layout/app-icon";
 import { Bracket } from "@/components/tournament/bracket";
 import { LiveRefresh } from "@/components/tournament/live-refresh";
 import { ShareLinks } from "@/components/tournament/share-links";
 import { getPublicBundle, type Bundle } from "@/lib/data";
 import { formatDateRange, siteUrl } from "@/lib/format";
+import { byOrderOfPlay } from "@/lib/schedule";
 import { REASON_LABEL, callout, isActive, isDone, roundName } from "@/lib/scoring";
 import { mediaUrl } from "@/lib/supabase/env";
 import type { MatchWithGames } from "@/lib/types";
@@ -18,15 +20,15 @@ export async function generateMetadata({ params }: PageProps<"/t/[slug]">): Prom
   const res = await getPublicBundle(slug);
   if (res.kind !== "ok") return { title: "Tournament not found" };
   const t = res.bundle.tournament;
-  const banner = mediaUrl(t.banner_path) ?? mediaUrl(t.logo_path);
   const description =
     t.subtitle ?? `${formatDateRange(t.start_date, t.end_date)}${t.venue_name ? `, ${t.venue_name}` : ""}. Live scores, draws and results.`;
   return {
     title: t.name,
     description,
     robots: t.visibility === "UNLISTED" || t.status === "DRAFT" ? { index: false, follow: false } : undefined,
-    openGraph: { title: t.name, description, url: siteUrl(`/t/${t.slug}`), images: banner ? [banner] : undefined },
-    twitter: { card: banner ? "summary_large_image" : "summary", title: t.name, description },
+    // The share image comes from ./opengraph-image.tsx (name, dates and the live score).
+    openGraph: { title: t.name, description, url: siteUrl(`/t/${t.slug}`) },
+    twitter: { card: "summary_large_image", title: t.name, description },
   };
 }
 
@@ -59,7 +61,7 @@ function TournamentView({ bundle: b, isOwner }: { bundle: Bundle; isOwner: boole
     `${catName[m.category_id]}${m.position !== null ? `, ${roundName(m.round, rounds[m.category_id] ?? m.round)}` : ""}`;
 
   const live = b.matches.filter(isActive);
-  const next = b.matches.filter((m) => m.status === "SCHEDULED" && m.entry_a_id && m.entry_b_id);
+  const next = b.matches.filter((m) => m.status === "SCHEDULED" && m.entry_a_id && m.entry_b_id).sort(byOrderOfPlay);
   const results = b.matches
     .filter((m) => isDone(m) && m.result_reason !== "BYE")
     .sort((x, y) => (y.finished_at ?? "").localeCompare(x.finished_at ?? ""));
@@ -160,7 +162,10 @@ function TournamentView({ bundle: b, isOwner }: { bundle: Bundle; isOwner: boole
                     </span>
                     <span className="text-sm text-ink-soft">{label(m)}</span>
                   </span>
-                  {m.court_id && <span className="text-sm font-semibold">{courtName[m.court_id]}</span>}
+                  <span className="text-right text-sm">
+                    {m.scheduled_at && <LocalTime iso={m.scheduled_at} className="block font-semibold" />}
+                    {m.court_id && <span className="text-ink-soft">{courtName[m.court_id]}</span>}
+                  </span>
                 </li>
               ))}
             </ul>

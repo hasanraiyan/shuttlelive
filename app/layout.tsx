@@ -17,6 +17,7 @@ const condensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
     default: "ShuttleLive — badminton tournaments, scored live",
     template: "%s · ShuttleLive",

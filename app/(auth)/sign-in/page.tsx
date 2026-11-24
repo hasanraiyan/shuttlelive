@@ -84,6 +84,11 @@ function SignInContent() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          action={
+            <Link href="/forgot-password" className="text-sm text-ink-soft hover:text-ink">
+              Forgot password?
+            </Link>
+          }
         />
         <PrimaryButton type="submit" disabled={loading} className="mt-2">
           {loading ? "Signing in…" : "Sign in"}

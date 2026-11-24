@@ -23,7 +23,15 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       {b.tournament.status !== "DRAFT" && (
         <ShareLinks url={siteUrl(`/t/${b.tournament.slug}`)} title={b.tournament.name} />
       )}
-      <MatchesBoard tid={b.tournament.id} matches={b.matches} courts={b.courts} categories={b.categories} names={names} />
+      <MatchesBoard
+        tid={b.tournament.id}
+        matches={b.matches}
+        courts={b.courts}
+        categories={b.categories}
+        names={names}
+        entries={b.entries}
+        players={b.players}
+      />
     </div>
   );
 }

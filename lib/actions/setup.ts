@@ -223,3 +223,22 @@ export async function deleteFixture(tid: string, matchId: string): Promise<Actio
   refresh(tid);
   return { ok: true };
 }
+
+export async function scheduleMatch(tid: string, matchId: string, iso: string | null): Promise<ActionResult> {
+  if (!uuid.safeParse(tid).success || !uuid.safeParse(matchId).success) return bad();
+  if (iso !== null) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime()) || iso.length > 40) return bad("Choose a valid date and time.");
+    iso = d.toISOString();
+  }
+  const { supabase } = await requireUser();
+  const { error } = await supabase
+    .from("matches")
+    .update({ scheduled_at: iso })
+    .eq("id", matchId)
+    .eq("tournament_id", tid)
+    .eq("status", "SCHEDULED");
+  if (error) return bad(explainDbError(error.message));
+  refresh(tid);
+  return { ok: true };
+}

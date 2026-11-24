@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/tournaments";
 import { createClient } from "@/lib/supabase/client";
 import { MEDIA_BUCKET, mediaUrl } from "@/lib/supabase/env";
+import { ACCEPTED, prepareImage } from "@/lib/image";
 import type { Court, Tournament } from "@/lib/types";
 
 export function DetailsForm({ t }: { t: Tournament }) {
@@ -112,12 +113,10 @@ export function SlugForm({ t }: { t: Tournament }) {
   );
 }
 
-const MAX_BYTES = 5 * 1024 * 1024;
-const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export function ImagesForm({ t }: { t: Tournament }) {
   return (
-    <Section title="Logo and banner" description="JPEG, PNG or WebP, up to 5 MB. A square logo and a wide banner (about 3:1) look best.">
+    <Section title="Logo and banner" description="JPEG, PNG or WebP. Logos are cropped to a square and banners to 3:1 from the centre, then resized, so put the important part in the middle.">
       <div className="grid gap-6 sm:grid-cols-[12rem_1fr]">
         <ImagePicker t={t} kind="logo" />
         <ImagePicker t={t} kind="banner" />
@@ -135,22 +134,27 @@ function ImagePicker({ t, kind }: { t: Tournament; kind: "logo" | "banner" }) {
 
   const upload = async (file: File) => {
     setError(null);
-    const ext = TYPES[file.type];
-    if (!ext) return setError("Use a JPEG, PNG or WebP image.");
-    if (file.size > MAX_BYTES) return setError("That image is over 5 MB.");
     setBusy(true);
     try {
+      const img = await prepareImage(file, kind);
       const supabase = createClient();
-      const name = `${t.id}/${kind}-${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(name, file, { contentType: file.type, cacheControl: "31536000", upsert: false });
-      if (upErr) return setError("Upload failed. Check the file and try again.");
+      const name = `${t.id}/${kind}-${crypto.randomUUID()}.${img.ext}`;
+      const { error: upErr } = await supabase.storage.from(MEDIA_BUCKET).upload(name, img.blob, {
+        contentType: img.ext === "webp" ? "image/webp" : "image/jpeg",
+        cacheControl: "31536000",
+        upsert: false,
+      });
+      if (upErr) {
+        setError("Upload failed. Check your connection and try again.");
+        return;
+      }
       const res = await setTournamentImage(t.id, kind, name);
       if (!res.ok) {
         await supabase.storage.from(MEDIA_BUCKET).remove([name]);
         setError(res.error);
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That image couldn't be used.");
     } finally {
       setBusy(false);
     }
@@ -179,7 +183,7 @@ function ImagePicker({ t, kind }: { t: Tournament; kind: "logo" | "banner" }) {
         <input
           id={inputId}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={ACCEPTED.join(",")}
           className="sr-only"
           disabled={busy}
           onChange={(e) => {
