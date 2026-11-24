@@ -1,4 +1,5 @@
 import * as React from "react";
+import { GOOGLE_SIGN_IN_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 export const inputClass =
@@ -43,11 +44,15 @@ export function PrimaryButton({ className, ...props }: React.ButtonHTMLAttribute
 }
 
 export function GoogleButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const off = !GOOGLE_SIGN_IN_ENABLED;
   return (
     <button
       type="button"
       {...props}
-      className="flex h-11 w-full items-center justify-center gap-2.5 rounded-md border border-line bg-surface text-[15px] font-semibold text-ink hover:border-ink disabled:opacity-50"
+      onClick={off ? undefined : props.onClick}
+      disabled={off || props.disabled}
+      aria-describedby={off ? "google-soon" : undefined}
+      className="flex h-11 w-full items-center justify-center gap-2.5 rounded-md border border-line bg-surface text-[15px] font-semibold text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line"
     >
       <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -56,6 +61,11 @@ export function GoogleButton({ children, ...props }: React.ButtonHTMLAttributes<
         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
       </svg>
       {children}
+      {off && (
+        <span id="google-soon" className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-soft">
+          Coming soon
+        </span>
+      )}
     </button>
   );
 }
