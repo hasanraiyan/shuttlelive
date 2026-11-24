@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { CourtLines, COURT } from "@/components/court/court-lines";
+import { ScoreFlip } from "@/components/ui/score-flip";
 import { cn } from "@/lib/utils";
 
 type Side = "a" | "b";
@@ -135,9 +136,11 @@ export function CourtScoreboard() {
                   {serving ? "Serving" : "Receiving"}, games won {state.games[side]}
                 </p>
               </div>
-              <span className="font-score w-[2ch] text-right text-6xl text-ink" aria-hidden="true">
-                {state.score[side]}
-              </span>
+              <ScoreFlip
+                value={state.score[side]}
+                minDigits={2}
+                className="w-[2ch] justify-end text-6xl text-ink"
+              />
             </div>
           );
         })}

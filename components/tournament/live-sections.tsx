@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocalTime } from "@/components/app/local-time";
 import { Bracket } from "@/components/tournament/bracket";
+import { ScoreFlip } from "@/components/ui/score-flip";
 import { useLiveMatches } from "@/lib/live";
 import { byOrderOfPlay } from "@/lib/schedule";
 import { REASON_LABEL, callout, isActive, isDone, roundName } from "@/lib/scoring";
@@ -238,7 +239,11 @@ function LiveCard({
                 </span>
               ))}
           </span>
-          <span className="font-score w-[2ch] text-right text-5xl">{side === "A" ? m.score_a : m.score_b}</span>
+          <ScoreFlip
+            value={side === "A" ? m.score_a : m.score_b}
+            minDigits={2}
+            className="w-[2ch] justify-end text-5xl"
+          />
         </div>
       ))}
       <p className="mt-3 flex items-center justify-between gap-2 text-sm">

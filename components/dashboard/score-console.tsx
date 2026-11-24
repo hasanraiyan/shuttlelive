@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Button, Notice } from "@/components/app/ui";
+import { ScoreFlip } from "@/components/ui/score-flip";
 import { scoreMatch } from "@/lib/actions/scoring";
 import { applyNextGame, applyPoint, restSeconds } from "@/lib/engine";
 import { createClient } from "@/lib/supabase/client";
@@ -334,9 +335,10 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
                   </span>
                 )}
               </span>
-              <span className="font-score text-[clamp(5.5rem,22vw,10rem)]" aria-hidden="true">
-                {score}
-              </span>
+              <ScoreFlip
+                value={score}
+                className="text-[clamp(5.5rem,22vw,10rem)]"
+              />
               <span className="h-5 text-sm font-medium">{serving ? `Serving, ${court} court` : live ? "+1" : ""}</span>
             </button>
           );

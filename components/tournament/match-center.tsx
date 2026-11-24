@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { LeadChart, SidesLegend } from "@/components/tournament/lead-chart";
 import { ShareLinks } from "@/components/tournament/share-links";
+import { ScoreFlip } from "@/components/ui/score-flip";
 import { buildCommentary, isKeyLine, type Line } from "@/lib/commentary";
 import { useLiveMatches } from "@/lib/live";
 import { matchStats, matchSummary, type SideStats } from "@/lib/match-stats";
@@ -129,7 +130,13 @@ export function MatchCenter(props: Props) {
                     </span>
                   ))}
               </div>
-              {inPlay && <span className="font-score w-[2ch] text-right text-6xl sm:text-7xl">{side === "A" ? m.score_a : m.score_b}</span>}
+              {inPlay && (
+                <ScoreFlip
+                  value={side === "A" ? m.score_a : m.score_b}
+                  minDigits={2}
+                  className="w-[2ch] justify-end text-6xl sm:text-7xl"
+                />
+              )}
             </div>
           );
         })}

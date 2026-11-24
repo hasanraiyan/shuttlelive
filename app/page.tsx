@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LandingNavbar } from "@/components/landing/navbar";
+import { HeroCta } from "@/components/landing/hero-cta";
 import { CourtScoreboard } from "@/components/landing/court-scoreboard";
 import { LogoFull } from "@/components/layout/app-icon";
 import { CourtLines } from "@/components/court/court-lines";
@@ -52,20 +53,7 @@ export default function HomePage() {
               ShuttleLive handles the draw, the courts and the scoring for badminton
               tournaments, and gives every event a live page anyone can open.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/sign-up"
-                className="rounded-md bg-court px-5 py-3 text-sm font-semibold text-court-line hover:bg-court-deep"
-              >
-                Create a tournament
-              </Link>
-              <Link
-                href="/sign-in"
-                className="rounded-md border border-line px-5 py-3 text-sm font-semibold text-ink hover:border-ink"
-              >
-                Sign in
-              </Link>
-            </div>
+            <HeroCta />
             <p className="mt-10 max-w-sm border-l-2 border-court pl-4 text-sm leading-relaxed text-ink-soft">
               The panel beside this is the scoring screen. Tap +1 to give a player the
               rally. The score, serve and service box update the way they do on court.
