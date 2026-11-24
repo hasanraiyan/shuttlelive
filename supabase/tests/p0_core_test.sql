@@ -163,6 +163,7 @@ select t_.ok(true, 'game scores cannot be written directly');
 
 select t_.ok(private.owns_tournament_path(:'tid' || '/logo-1.png'), 'owner may write to own media folder');
 select t_.ok(not private.owns_tournament_path('../etc/passwd'), 'malformed storage path rejected');
+select t_.ok(jsonb_array_length(public.tournament_bundle(:'tid')->'matches') > 0, 'owner bundle includes matches');
 
 -- ── Anonymous visitor ──────────────────────────────────────────────────────
 reset role;
@@ -170,6 +171,7 @@ set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select t_.ok((select count(*) = 0 from public.tournaments), 'TC-14 draft tournaments are hidden from the public');
 select t_.ok((select count(*) = 0 from public.matches), 'draft matches are hidden from the public');
+select t_.ok(public.tournament_bundle(:'tid') is null and public.tournament_bundle_by_slug('winter-open') is null, 'bundle hides drafts from the public');
 select t_.expect_error(format($$select public.apply_match_command(%L, 'POINT', 1, gen_random_uuid(), 'A')$$, :'m2'), 'permission denied');
 select t_.ok(true, 'TC-12 anonymous callers cannot score');
 select t_.expect_error(format($$insert into public.players (tournament_id, name) values (%L, 'x')$$, :'tid'), 'permission denied');
@@ -181,6 +183,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
 update public.tournaments set name = 'Hijacked' where id = :'tid';
 select t_.ok((select count(*) = 0 from public.tournaments where id = :'tid'), 'other organizer cannot see a draft');
+select t_.ok(public.tournament_bundle(:'tid') is null, 'other organizer gets no bundle for a draft');
 select t_.expect_error(format($$select public.apply_match_command(%L, 'POINT', 1, gen_random_uuid(), 'A')$$, :'m2'), 'NOT_FOUND');
 select t_.ok(true, 'TC-25 other organizer cannot score');
 select t_.expect_error(format($$select public.generate_knockout(%L)$$, :'cat'), 'NOT_FOUND');
@@ -210,6 +213,8 @@ set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select t_.ok((select count(*) = 1 from public.tournaments where slug = 'winter-open-2026'), 'published tournament is public');
 select t_.ok((select count(*) > 0 from public.matches where tournament_id = :'tid'), 'published matches are public');
+select t_.ok(public.tournament_bundle_by_slug('winter-open-2026')->'tournament'->>'slug' = 'winter-open-2026', 'public bundle by slug');
+select t_.ok(public.tournament_bundle_by_slug('winter-open')->>'redirect' = 'winter-open-2026', 'old slug returns a redirect');
 select t_.expect_error($$select count(*) from public.match_events$$, 'permission denied');
 select t_.ok(true, 'match log is not public');
 

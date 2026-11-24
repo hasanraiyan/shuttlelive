@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { tournamentChanged } from "@/lib/revalidate";
 import { explainDbError } from "@/lib/scoring";
 import type { ActionResult, MatchWithGames } from "@/lib/types";
 
@@ -39,8 +39,9 @@ export async function scoreMatch(input: z.input<typeof commandSchema>): Promise<
     return { ok: false, error: explainDbError(error.message), conflict };
   }
 
-  if (["START", "CONFIRM", "TERMINATE"].includes(c.command)) {
-    revalidatePath(`/dashboard/t/${c.tournamentId}`, "layout");
-  }
+  // Points only mark the shared public page stale (open pages update via Realtime,
+  // and the dashboard patches its own state). Start, confirm and early finishes
+  // also move players between matches, so the dashboard reloads its data.
+  tournamentChanged(c.tournamentId, { dashboard: ["START", "CONFIRM", "TERMINATE"].includes(c.command) });
   return { ok: true, data: data as MatchWithGames };
 }

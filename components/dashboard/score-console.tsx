@@ -13,6 +13,10 @@ import { cn } from "@/lib/utils";
 type Props = {
   tid: string;
   initial: MatchWithGames;
+  /** The shared dashboard copy of this match, kept current by Realtime. */
+  external: MatchWithGames;
+  /** Reports each server-confirmed state back to the shared dashboard data. */
+  onMatch: (m: MatchWithGames) => void;
   names: Record<Side, string>;
   context: string;
   courtName: string | null;
@@ -48,7 +52,7 @@ const sortGames = (m: MatchWithGames): MatchWithGames => ({
   games: [...(m.games ?? [])].sort((a, b) => a.game_number - b.game_number),
 });
 
-export function ScoreConsole({ tid, initial, names, context, courtName }: Props) {
+export function ScoreConsole({ tid, initial, external, onMatch, names, context, courtName }: Props) {
   // What the screen shows: the server's state plus any queued commands applied on top.
   const [match, setMatch] = React.useState(() => sortGames(initial));
   const [queue, setQueue] = React.useState<Queued[]>([]);
@@ -58,6 +62,16 @@ export function ScoreConsole({ tid, initial, names, context, courtName }: Props)
   const [error, setError] = React.useState<string | null>(null);
 
   const queueRef = React.useRef<Queued[]>([]);
+  const onMatchRef = React.useRef(onMatch);
+  React.useEffect(() => {
+    onMatchRef.current = onMatch;
+  }, [onMatch]);
+  /** A state the server confirmed: show it and share it with the other tabs. */
+  const confirmed = React.useCallback((m: MatchWithGames) => {
+    const sorted = sortGames(m);
+    setMatch(sorted);
+    onMatchRef.current(sorted);
+  }, []);
   const historyRef = React.useRef<MatchWithGames[]>([]); // states before each local command, for offline undo
   const flushing = React.useRef(false);
   const supabase = React.useMemo(() => createClient(), []);
@@ -77,8 +91,8 @@ export function ScoreConsole({ tid, initial, names, context, courtName }: Props)
       .select("*, games:match_games(game_number, score_a, score_b, winner_side)")
       .eq("id", initial.id)
       .single();
-    if (data) setMatch(sortGames(data as MatchWithGames));
-  }, [supabase, initial.id]);
+    if (data) confirmed(data as MatchWithGames);
+  }, [supabase, initial.id, confirmed]);
 
   // Send queued commands one at a time, in order.
   const flush = React.useCallback(async () => {
@@ -118,14 +132,14 @@ export function ScoreConsole({ tid, initial, names, context, courtName }: Props)
         const rest = queueRef.current.slice(1);
         setQueueBoth(rest);
         if (!rest.length) {
-          if (res.data) setMatch(sortGames(res.data));
+          if (res.data) confirmed(res.data);
           setLocked(false);
         }
       }
     } finally {
       flushing.current = false;
     }
-  }, [tid, initial.id, reload, setQueueBoth]);
+  }, [tid, initial.id, reload, setQueueBoth, confirmed]);
 
   // Restore anything left from a refresh or a dropped connection.
   React.useEffect(() => {
@@ -171,18 +185,17 @@ export function ScoreConsole({ tid, initial, names, context, courtName }: Props)
     };
   }, [flush]);
 
-  // Changes from another tab or device, applied only when nothing local is pending.
+  // Changes from another tab or device arrive through the shared dashboard data
+  // (one Realtime subscription for the whole tournament). Adopt them only when
+  // nothing local is pending, so they never overwrite unsent taps.
   React.useEffect(() => {
-    const channel = supabase
-      .channel(`match-${initial.id}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches", filter: `id=eq.${initial.id}` }, () => {
-        if (!queueRef.current.length && !flushing.current) void reload();
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [supabase, initial.id, reload]);
+    if (queueRef.current.length || flushing.current) return;
+    setMatch((cur) => {
+      if (external.version <= cur.version) return cur;
+      historyRef.current = [];
+      return sortGames(external);
+    });
+  }, [external]);
 
   /** Point, next game and undo: shown instantly, then queued for the server. */
   const enqueue = (command: Queued["command"], side?: Side) => {
@@ -218,7 +231,7 @@ export function ScoreConsole({ tid, initial, names, context, courtName }: Props)
         expectedVersion: match.version,
         clientEventId: crypto.randomUUID(),
       });
-      if (res.ok && res.data) setMatch(sortGames(res.data));
+      if (res.ok && res.data) confirmed(res.data);
       else if (!res.ok) {
         setError(res.error);
         if (res.conflict) await reload();
@@ -247,7 +260,7 @@ export function ScoreConsole({ tid, initial, names, context, courtName }: Props)
       });
       if (res.ok && res.data) {
         historyRef.current = [];
-        setMatch(sortGames(res.data));
+        confirmed(res.data);
       } else if (!res.ok) {
         setError(res.error);
         if (res.conflict) await reload();

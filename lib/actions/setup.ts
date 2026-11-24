@@ -1,13 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { tournamentChanged } from "@/lib/revalidate";
 import { explainDbError } from "@/lib/scoring";
 import type { ActionResult } from "@/lib/types";
 import { categorySchema, courtNameSchema, firstError, parsePlayerLines, playerSchema, uuid } from "@/lib/validation";
 import { z } from "zod";
 
-const refresh = (tid: string) => revalidatePath(`/dashboard/t/${tid}`, "layout");
+const refresh = (tid: string) => tournamentChanged(tid);
 const bad = (msg = "Invalid request.") => ({ ok: false as const, error: msg });
 
 // ── Players ────────────────────────────────────────────────────────────────

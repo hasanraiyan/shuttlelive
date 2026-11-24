@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { tournamentChanged } from "@/lib/revalidate";
 import { explainDbError } from "@/lib/scoring";
 import type { ActionResult } from "@/lib/types";
 import {
@@ -54,7 +55,8 @@ export async function updateTournamentDetails(
   const { supabase } = await requireUser();
   const { error } = await supabase.from("tournaments").update(parsed.data).eq("id", tournamentId);
   if (error) return { ok: false, error: explainDbError(error.message) };
-  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  tournamentChanged(tournamentId);
+  revalidatePath("/dashboard");
   return { ok: true, message: "Details saved." };
 }
 
@@ -64,9 +66,10 @@ export async function updateSlug(tournamentId: string, _prev: ActionResult, fd: 
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 
   const { supabase } = await requireUser();
+  const { data: before } = await supabase.from("tournaments").select("slug").eq("id", tournamentId).maybeSingle();
   const { error } = await supabase.from("tournaments").update({ slug: parsed.data }).eq("id", tournamentId);
   if (error) return { ok: false, error: explainDbError(error.message) };
-  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  tournamentChanged(tournamentId, { slugs: [parsed.data, ...(before?.slug ? [before.slug] : [])] });
   return { ok: true, message: "Web address updated. The old address now redirects here." };
 }
 
@@ -77,9 +80,14 @@ export async function setTournamentStatus(
   if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
   if (!["DRAFT", "PUBLISHED", "COMPLETED"].includes(status)) return { ok: false, error: "Invalid status." };
   const { supabase } = await requireUser();
-  const { error } = await supabase.from("tournaments").update({ status }).eq("id", tournamentId);
+  const { data, error } = await supabase
+    .from("tournaments")
+    .update({ status })
+    .eq("id", tournamentId)
+    .select("slug")
+    .maybeSingle();
   if (error) return { ok: false, error: explainDbError(error.message) };
-  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  tournamentChanged(tournamentId, { slugs: data?.slug ? [data.slug] : [] });
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -100,6 +108,7 @@ export async function deleteTournament(tournamentId: string, _prev: ActionResult
   }
   const { error } = await supabase.from("tournaments").delete().eq("id", tournamentId);
   if (error) return { ok: false, error: explainDbError(error.message) };
+  tournamentChanged(tournamentId, { slugs: [t.slug], dashboard: false });
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }
@@ -124,7 +133,7 @@ export async function setTournamentImage(
   const old = (before as Record<string, string | null> | null)?.[column];
   if (old && old !== path) await supabase.storage.from("tournament-media").remove([old]);
 
-  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  tournamentChanged(tournamentId);
   return { ok: true };
 }
 

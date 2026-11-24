@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { cacheLife, cacheTag } from "next/cache";
 import { ImageResponse } from "next/og";
 import { formatDateRange } from "@/lib/format";
 import { isActive } from "@/lib/scoring";
 import { createPublicClient } from "@/lib/supabase/server";
+import { tags } from "@/lib/tags";
 import type { MatchWithGames, Tournament } from "@/lib/types";
 
 export const alt = "Tournament live scores on ShuttleLive";
@@ -32,27 +34,7 @@ async function brandColours() {
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const c = await brandColours();
-  const supabase = createPublicClient();
-
-  // Anonymous client: drafts are invisible here, so a draft link never leaks its name.
-  const { data: t } = /^[a-z0-9-]{3,60}$/.test(slug)
-    ? await supabase.from("tournaments").select("*").eq("slug", slug).maybeSingle()
-    : { data: null };
-
-  let live: { a: string; b: string; sa: number; sb: number } | null = null;
-  if (t) {
-    const { data: matches } = await supabase
-      .from("matches")
-      .select("*, entry_a:entries!matches_entry_a_id_category_id_fkey(display_name), entry_b:entries!matches_entry_b_id_category_id_fkey(display_name)")
-      .eq("tournament_id", (t as Tournament).id)
-      .in("status", ["LIVE", "GAME_ENDED", "MATCH_WON_PENDING"])
-      .order("updated_at", { ascending: false })
-      .limit(1);
-    const m = matches?.[0] as (MatchWithGames & { entry_a: { display_name: string } | null; entry_b: { display_name: string } | null }) | undefined;
-    if (m && isActive(m)) {
-      live = { a: m.entry_a?.display_name ?? "", b: m.entry_b?.display_name ?? "", sa: m.score_a, sb: m.score_b };
-    }
-  }
+  const { t, live } = await loadCard(slug);
 
   const tournament = t as Tournament | null;
   const title = tournament?.name ?? "ShuttleLive";
@@ -112,4 +94,35 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     ),
     size
   );
+}
+
+/** Cached per slug; refreshed when the organizer changes anything, and at most every few minutes for the live score. */
+async function loadCard(slug: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(tags.slug(slug));
+  const supabase = createPublicClient();
+
+  // Anonymous client: drafts are invisible here, so a draft link never leaks its name.
+  const { data: t } = /^[a-z0-9-]{3,60}$/.test(slug)
+    ? await supabase.from("tournaments").select("*").eq("slug", slug).maybeSingle()
+    : { data: null };
+
+  let live: { a: string; b: string; sa: number; sb: number } | null = null;
+  if (t) {
+    const { data: matches } = await supabase
+      .from("matches")
+      .select("*, entry_a:entries!matches_entry_a_id_category_id_fkey(display_name), entry_b:entries!matches_entry_b_id_category_id_fkey(display_name)")
+      .eq("tournament_id", (t as Tournament).id)
+      .in("status", ["LIVE", "GAME_ENDED", "MATCH_WON_PENDING"])
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const m = matches?.[0] as (MatchWithGames & { entry_a: { display_name: string } | null; entry_b: { display_name: string } | null }) | undefined;
+    if (m && isActive(m)) {
+      live = { a: m.entry_a?.display_name ?? "", b: m.entry_b?.display_name ?? "", sa: m.score_a, sb: m.score_b };
+    }
+  }
+
+  if (t) cacheTag(tags.tournament((t as Tournament).id));
+  return { t, live };
 }

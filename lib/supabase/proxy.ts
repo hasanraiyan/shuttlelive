@@ -17,9 +17,10 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refreshes the session cookie when needed and verifies the JWT locally (no network call
+  // unless the token has expired and must be refreshed).
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ?? null;
 
   const path = request.nextUrl.pathname;
   if (!user && path.startsWith("/dashboard")) {
