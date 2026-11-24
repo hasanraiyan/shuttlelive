@@ -32,9 +32,9 @@ gantt
 - [ ] Initialize Supabase project; apply migration with `organizations`, `tournaments`, `tournament_branding`, `matches`, `match_events`.
 - [ ] Deploy PostgreSQL Stored Procedure `record_point_event()` for atomic, server-authoritative scoring.
 - [ ] Enable PostgreSQL `pg_trgm` extension for fuzzy platform search.
-- [ ] Configure Supabase Row Level Security (RLS) policies for cross-tenant isolation and umpire authorization.
+- [ ] Configure Supabase Row Level Security (RLS) policies for cross-tenant isolation (owner-only writes, public read of published tournaments).
 - [ ] Setup Supabase Storage buckets: `tournament-assets`, `organization-assets`, `player-avatars` with public read policies.
-- [ ] Implement Supabase Auth (Email/password, Google OAuth, and umpire Magic Link / 6-digit OTP fast-pass).
+- [ ] Implement Supabase Auth (Email/password and Google OAuth). No umpire login in Phase 0.
 
 ### Phase 2: Tournament Creation & Branding Studio (Est. 60 min)
 - [ ] **[P0]** Build Generic Tournament Creation Wizard (Independent of specific college branding).
@@ -52,12 +52,12 @@ gantt
 - [ ] **[P0]** Implement Player scheduling overlap warning.
 - [ ] **[P1]** Implement Bronze Medal (Third-place match) toggle.
 
-### Phase 4: Scoring Engine & Referee Interface (Est. 90 min)
+### Phase 4: Scoring Engine & Organizer Scoring Console (Est. 90 min)
 - [ ] **[P0]** Connect unified command endpoint `POST /api/matches/:matchId/events` to Supabase `record_point_event()` RPC.
 - [ ] **[P0]** Implement authoritative scoring state machine (BWF 3x21 + BAI 3x15, deuce, cap, intervals).
 - [ ] **[P0]** Implement append-only `UNDO` rollback mechanism without data deletion.
 - [ ] **[P0]** Implement `MATCH_WON_PENDING` confirmation state.
-- [ ] **[P0]** Build mobile-first single-tap referee UI ($>48\text{px}$ touch targets).
+- [ ] **[P0]** Build mobile-first single-tap organizer scoring console ($>48\text{px}$ touch targets).
 - [ ] **[P0]** Implement optimistic concurrency versioning (`expectedVersion`, `clientEventId`, `409 Conflict`).
 - [ ] **[P0]** Handle Walkover, Retirement, and Disqualification termination protocols.
 
@@ -92,10 +92,10 @@ gantt
 | **TC-04** | Scoring | Score reaches 29–29; Side A scores next (30–29). | Game finishes immediately on sudden death cap (30 pts). | 🔲 |
 | **TC-05** | Scoring (BAI) | 3x15 format: score reaches 20–20; Side B scores (21–20). | Game finishes immediately on BAI cap of 21 points. | 🔲 |
 | **TC-06** | Service | Game 1 won by Side A; Game 2 begins. | Side A serves first in Game 2 from Right Service Court. | 🔲 |
-| **TC-07** | Undo Engine | Umpire scores 21st game-winning point, then clicks Undo. | Score rolls back to 20–19; game reopens cleanly; no data lost. | 🔲 |
-| **TC-08** | Undo Engine | Umpire scores match-winning point; clicks Undo before confirm. | Match rolls back from `MATCH_WON_PENDING` to `LIVE`. | 🔲 |
+| **TC-07** | Undo Engine | Organizer scores 21st game-winning point, then clicks Undo. | Score rolls back to 20–19; game reopens cleanly; no data lost. | 🔲 |
+| **TC-08** | Undo Engine | Organizer scores match-winning point; clicks Undo before confirm. | Match rolls back from `MATCH_WON_PENDING` to `LIVE`. | 🔲 |
 | **TC-09** | Concurrency | Client sends 2 identical requests with same `client_event_id`. | Second request returns cached 200 OK; point NOT counted twice. | 🔲 |
-| **TC-10** | Persistence | Umpire refreshes mobile browser tab at 14–11. | UI reloads exactly at 14–11 with matching serving side. | 🔲 |
+| **TC-10** | Persistence | Organizer refreshes mobile browser tab at 14–11. | UI reloads exactly at 14–11 with matching serving side. | 🔲 |
 | **TC-11** | Offline Mode | Scorer internet drops; 2 points entered; internet restores. | Events replay sequentially with version validation. | 🔲 |
 | **TC-12** | Security | Unauthenticated visitor POSTs to `/api/matches/:id/events`. | HTTP 401/403 Forbidden; database mutation blocked by RLS. | 🔲 |
 | **TC-13** | Privacy | Unlisted tournament created; user searches in global search. | Unlisted tournament is omitted from search results. | 🔲 |
@@ -105,7 +105,7 @@ gantt
 | **TC-17** | Scheduling | Attempt to start Match 2 on Court 1 while Match 1 is `LIVE`. | Blocked with warning: "Court 1 is currently occupied". | 🔲 |
 | **TC-18** | Scheduling | Schedule Player A on Court 1 and Court 2 simultaneously. | System displays scheduling conflict warning for Player A. | 🔲 |
 | **TC-19** | Walkover | Player absent before match; Walkover declared. | Opponent advances cleanly; no artificial "21-0" score recorded. | 🔲 |
-| **TC-20** | Spectator | Score updated by umpire on court. | Spectator view updates in $< 800\text{ms}$ without page reload. | 🔲 |
+| **TC-20** | Spectator | Score updated by organizer from the console. | Spectator view updates in $< 800\text{ms}$ without page reload. | 🔲 |
 | **TC-21** | Branding | Tournament with custom logo and banner loaded. | Header renders uploaded assets with "Powered by ShuttleLive". | 🔲 |
 | **TC-22** | Degradation | Tournament created without sponsors, rules, or prizes. | Public page cleanly collapses those sections without blank gaps. | 🔲 |
 | **TC-23** | Slug Routing | User creates tournament with reserved slug `admin` or `api`. | Blocked with error: "Slug is reserved by the platform". | 🔲 |
@@ -125,4 +125,4 @@ Before match day commences, confirm the following with the pilot event organizer
 2. **Venue Information:** Exact court location name, address, and Google Maps pin link.
 3. **Scoring Preset:** Confirm whether standard 3x21 or BAI domestic 3x15 will be used for games.
 4. **Draw Format:** Confirm whether paper fixtures already exist (manual entry) or automatic bracket generation is desired.
-5. **Courts & Umpires:** Total physical courts and confirmation that student/faculty umpires have smartphones.
+5. **Courts & Scoring:** Total physical courts, and who will score from the organizer account on match day.

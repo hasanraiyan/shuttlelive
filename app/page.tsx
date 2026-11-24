@@ -11,9 +11,9 @@ const ROLES = [
     body: "Add players by hand or from a spreadsheet, choose categories and scoring, generate the draw and give each court its order of play.",
   },
   {
-    who: "Umpires",
+    who: "On match day",
     title: "Score from the side of the court",
-    body: "Open the PIN you were given and tap the side that won each rally. Serving side, intervals, deuce and game point are tracked for you.",
+    body: "Open a match on your phone and tap the side that won each rally. Serving side, intervals, deuce and game point are tracked for you.",
   },
   {
     who: "Players and fans",
@@ -27,7 +27,7 @@ const STEPS = [
   { title: "Add the entries", body: "Type players in or import a CSV. Group them by team or club." },
   { title: "Make the draw", body: "Knockout brackets with byes worked out for you, or copy in a draw you already made on paper." },
   { title: "Run the courts", body: "See who is on court and who is next. Players booked on two courts at once are flagged." },
-  { title: "Crown the champions", body: "Results lock when the umpire confirms. Winners appear on the event page for good." },
+  { title: "Crown the champions", body: "Results lock when you confirm them. Winners appear on the event page for good." },
 ];
 
 const FORMATS = [
@@ -42,7 +42,7 @@ export default function HomePage() {
       <LandingNavbar />
 
       <main className="flex-1">
-        {/* Hero: headline beside the umpire's scoring screen */}
+        {/* Hero: headline beside the scoring screen */}
         <section className="mx-auto grid max-w-6xl gap-12 px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:grid-cols-[1fr_440px] lg:items-center lg:gap-16 lg:pb-24">
           <div>
             <h1 className="font-display text-[clamp(3rem,6.5vw,5.5rem)] text-ink">
@@ -60,14 +60,14 @@ export default function HomePage() {
                 Create a tournament
               </Link>
               <Link
-                href="/sign-in?mode=umpire"
+                href="/sign-in"
                 className="rounded-md border border-line px-5 py-3 text-sm font-semibold text-ink hover:border-ink"
               >
-                Enter umpire PIN
+                Sign in
               </Link>
             </div>
             <p className="mt-10 max-w-sm border-l-2 border-court pl-4 text-sm leading-relaxed text-ink-soft">
-              The panel beside this is the umpire&apos;s screen. Tap +1 to give a player the
+              The panel beside this is the scoring screen. Tap +1 to give a player the
               rally. The score, serve and service box update the way they do on court.
             </p>
           </div>
@@ -184,7 +184,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Umpire PIN */}
+        {/* Scoring from a phone */}
         <section className="relative overflow-hidden bg-court-deep text-court-line">
           <CourtLines
             orientation="vertical"
@@ -193,29 +193,24 @@ export default function HomePage() {
           <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center lg:py-24">
             <div>
               <h2 className="font-display text-[clamp(2.25rem,5vw,3.75rem)]">
-                Give umpires a PIN, not a password
+                Score every rally from your phone
               </h2>
               <p className="mt-4 max-w-md leading-relaxed opacity-85">
-                Each court gets a six-digit PIN. Any volunteer can type it on their own phone
-                and start scoring that match. Mistakes can be undone point by point, and every
-                change is kept in the match record.
+                Open the match from your dashboard and tap the side that won the rally. Undo any
+                mistake point by point. Every change is kept in the match record, and the public
+                page updates as you tap.
               </p>
               <Link
-                href="/sign-in?mode=umpire"
+                href="/sign-up"
                 className="mt-8 inline-block rounded-md bg-court-line px-5 py-3 text-sm font-semibold text-court-deep hover:bg-surface-2"
               >
-                Enter umpire PIN
+                Create a tournament
               </Link>
             </div>
-            <div className="flex gap-2 sm:gap-3 md:justify-end" aria-hidden="true">
-              {["8", "4", "9", "2", "0", "1"].map((d, i) => (
-                <span
-                  key={i}
-                  className="font-score flex h-16 w-11 items-center justify-center rounded-md border border-court-line/40 text-4xl sm:h-20 sm:w-14 sm:text-5xl"
-                >
-                  {d}
-                </span>
-              ))}
+            <div className="flex items-baseline gap-4 md:justify-end" aria-hidden="true">
+              <span className="font-score text-[clamp(6rem,16vw,11rem)]">21</span>
+              <span className="font-score text-[clamp(3rem,8vw,5rem)] opacity-60">–</span>
+              <span className="font-score text-[clamp(6rem,16vw,11rem)] opacity-60">19</span>
             </div>
           </div>
         </section>
@@ -243,7 +238,6 @@ export default function HomePage() {
           </Link>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
             <Link href="/sign-up" className="hover:text-ink">Create a tournament</Link>
-            <Link href="/sign-in?mode=umpire" className="hover:text-ink">Enter umpire PIN</Link>
             <Link href="/sign-in" className="hover:text-ink">Sign in</Link>
           </nav>
         </div>

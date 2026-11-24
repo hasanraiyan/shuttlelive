@@ -35,15 +35,15 @@ ShuttleLive Web Application
  │    ├── S-ORG-04: Category & Scoring Rule Configuration
  │    ├── S-ORG-05: Draw / Bracket Generator & Manual Fixture Editor
  │    ├── S-ORG-06: Court Scheduling & Conflict Matrix
- │    ├── S-ORG-07: Scorer Assignment & PIN Delegation
+ │    ├── S-ORG-07: (removed in v1.3 — no scorer delegation in Phase 0)
  │    ├── S-ORG-08: Tournament Announcements Broadcast
  │    ├── S-ORG-09: Post-Finalization Result Correction & Audit Log
  │    ├── S-ORG-10: Appearance & Branding Studio (Logo, Banner, Colors, Toggles)
  │    ├── S-ORG-11: Organization Workspace & Reusable Assets [P1]
  │    └── S-ORG-12: Tournament Duplication & Seasonal Template Modal [P1]
  │
- └── 3. COURT UMPIRE / SCORER INTERFACE
-      ├── S-SCR-01: Scorer Match Selection & PIN Authorization
+ └── 3. ORGANIZER SCORING CONSOLE (signed-in tournament owner only)
+      ├── S-SCR-01: Match picker inside the organizer dashboard
       ├── S-SCR-02: Pre-Match Toss, Serving Choice & Court End Confirmation
       ├── S-SCR-03: Live 1-Tap Scoring Board (Points, Service, Undo, Let, Fault)
       ├── S-SCR-04: Interval & End Change Modal (60s / 120s Timers)
@@ -162,4 +162,4 @@ To guarantee readability under direct sunlight in indoor/outdoor gymnasiums:
    - If $L \ge 0.4$, header typography defaults to `#0F172A` (Deep slate).
 3. **Touch Ergonomics Preservation:**
    - Custom branding is strictly applied to banners, badges, and headers.
-   - **The Live Scorer Court Interface (S-SCR-03) preserves standard high-visibility system colors** (Emerald Green for Score +1, Amber for Undo, Rose for Fault) to eliminate cognitive confusion for umpires.
+   - **The Live Scorer Court Interface (S-SCR-03) preserves standard high-visibility system colors** (Emerald Green for Score +1, Amber for Undo, Rose for Fault) to eliminate cognitive confusion for the person scoring (umpires.

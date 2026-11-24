@@ -1,189 +1,135 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { Tournament, TournamentBranding, Category, Court } from "@/lib/types/database";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { explainDbError } from "@/lib/scoring";
+import type { ActionResult } from "@/lib/types";
+import {
+  createTournamentSchema,
+  firstError,
+  slugSchema,
+  tournamentDetailsSchema,
+  uuid,
+} from "@/lib/validation";
 
-export interface CreateTournamentInput {
-  name: string;
-  slug?: string;
-  subtitle?: string;
-  description?: string;
-  organizerDisplayName: string;
-  venueName: string;
-  venueAddress?: string;
-  venueGoogleMapsUrl?: string;
-  startDate: string;
-  endDate: string;
-  visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
-  courtCount?: number;
-}
+const fields = (fd: FormData, keys: string[]) =>
+  Object.fromEntries(keys.map((k) => [k, (fd.get(k) as string | null) ?? undefined]));
 
-export async function createTournament(input: CreateTournamentInput) {
-  const supabase = await createClient();
+const DETAIL_KEYS = [
+  "name", "subtitle", "description", "host_name", "venue_name",
+  "venue_address", "venue_map_url", "start_date", "end_date", "visibility",
+];
 
-  // 1. Verify User
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function createTournament(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  const parsed = createTournamentSchema.safeParse(fields(fd, [...DETAIL_KEYS, "slug", "courts"]));
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { courts, ...row } = parsed.data;
 
-  if (!user) {
-    throw new Error("You must be authenticated to create a tournament.");
-  }
+  const { supabase } = await requireUser("/dashboard/new");
+  const { data, error } = await supabase.from("tournaments").insert(row).select("id").single();
+  if (error || !data) return { ok: false, error: explainDbError(error?.message) };
 
-  // 2. Generate slug if not provided
-  let slug = input.slug
-    ? input.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, "-")
-    : input.name.toLowerCase().trim().replace(/[^a-z0-9-]/g, "-");
-
-  // Prevent reserved slugs
-  const RESERVED_SLUGS = ["admin", "api", "dashboard", "auth", "login", "tournaments", "explore", "settings", "live"];
-  if (RESERVED_SLUGS.includes(slug)) {
-    slug = `${slug}-cup`;
-  }
-
-  // Append random suffix if exists
-  const { data: existing } = await supabase.from("tournaments").select("id").eq("slug", slug).maybeSingle();
-  if (existing) {
-    slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`;
-  }
-
-  // 3. Insert Tournament
-  const { data: tournament, error: trnError } = await supabase
-    .from("tournaments")
-    .insert({
-      owner_id: user.id,
-      name: input.name,
-      slug,
-      subtitle: input.subtitle || null,
-      description: input.description || null,
-      organizer_display_name: input.organizerDisplayName,
-      venue_name: input.venueName,
-      venue_address: input.venueAddress || null,
-      venue_google_maps_url: input.venueGoogleMapsUrl || null,
-      start_date: input.startDate,
-      end_date: input.endDate,
-      visibility: input.visibility || "PUBLIC",
-      status: "DRAFT",
-    })
-    .select()
-    .single();
-
-  if (trnError || !tournament) {
-    throw new Error(`Failed to create tournament: ${trnError?.message}`);
-  }
-
-  // 4. Create Default Branding
-  await supabase.from("tournament_branding").insert({
-    tournament_id: tournament.id,
-    primary_color: "#0f172a",
-    accent_color: "#10b981",
-    theme_mode: "SYSTEM",
-  });
-
-  // 5. Create Default Courts
-  const courtCount = input.courtCount || 2;
-  const courtInserts = Array.from({ length: courtCount }).map((_, i) => ({
-    tournament_id: tournament.id,
+  const courtRows = Array.from({ length: courts }, (_, i) => ({
+    tournament_id: data.id,
     name: `Court ${i + 1}`,
+    sort_order: i + 1,
   }));
-  await supabase.from("courts").insert(courtInserts);
-
-  // 6. Create Standard Categories (MS, WS, MD)
-  const defaultCategories = [
-    { tournament_id: tournament.id, name: "Men's Singles", type: "SINGLES", gender_eligibility: "MEN", rule_preset: "BWF_STANDARD" },
-    { tournament_id: tournament.id, name: "Women's Singles", type: "SINGLES", gender_eligibility: "WOMEN", rule_preset: "BWF_STANDARD" },
-    { tournament_id: tournament.id, name: "Men's Doubles", type: "DOUBLES", gender_eligibility: "MEN", rule_preset: "BWF_STANDARD" },
-  ];
-  await supabase.from("categories").insert(defaultCategories);
+  const { error: courtError } = await supabase.from("courts").insert(courtRows);
+  if (courtError) return { ok: false, error: explainDbError(courtError.message) };
 
   revalidatePath("/dashboard");
-  return tournament as Tournament;
+  redirect(`/dashboard/t/${data.id}`);
 }
 
-export async function getTournamentBySlug(slug: string) {
-  const supabase = await createClient();
+export async function updateTournamentDetails(
+  tournamentId: string,
+  _prev: ActionResult,
+  fd: FormData
+): Promise<ActionResult> {
+  if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
+  const parsed = tournamentDetailsSchema.safeParse(fields(fd, DETAIL_KEYS));
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 
-  // 1. Fetch tournament
-  const { data: tournament, error } = await supabase
-    .from("tournaments")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("tournaments").update(parsed.data).eq("id", tournamentId);
+  if (error) return { ok: false, error: explainDbError(error.message) };
+  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  return { ok: true, message: "Details saved." };
+}
 
-  if (error || !tournament) {
-    // Check slug_redirects
-    const { data: redirect } = await supabase
-      .from("slug_redirects")
-      .select("tournament_id, tournaments(slug)")
-      .eq("previous_slug", slug)
-      .maybeSingle();
+export async function updateSlug(tournamentId: string, _prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
+  const parsed = slugSchema.safeParse(fd.get("slug"));
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 
-    if (redirect && redirect.tournaments) {
-      return { redirect: (redirect.tournaments as unknown as { slug: string }).slug };
-    }
-    return null;
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("tournaments").update({ slug: parsed.data }).eq("id", tournamentId);
+  if (error) return { ok: false, error: explainDbError(error.message) };
+  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  return { ok: true, message: "Web address updated. The old address now redirects here." };
+}
+
+export async function setTournamentStatus(
+  tournamentId: string,
+  status: "DRAFT" | "PUBLISHED" | "COMPLETED"
+): Promise<ActionResult> {
+  if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
+  if (!["DRAFT", "PUBLISHED", "COMPLETED"].includes(status)) return { ok: false, error: "Invalid status." };
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("tournaments").update({ status }).eq("id", tournamentId);
+  if (error) return { ok: false, error: explainDbError(error.message) };
+  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function deleteTournament(tournamentId: string, _prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
+  const { supabase } = await requireUser();
+  const { data: t } = await supabase.from("tournaments").select("slug").eq("id", tournamentId).maybeSingle();
+  if (!t) return { ok: false, error: explainDbError("NOT_FOUND") };
+  if ((fd.get("confirm") as string | null)?.trim() !== t.slug) {
+    return { ok: false, error: `Type ${t.slug} to confirm.` };
   }
 
-  // 2. Fetch branding, courts, and categories in parallel
-  const [brandingRes, courtsRes, categoriesRes, liveMatchesRes] = await Promise.all([
-    supabase.from("tournament_branding").select("*").eq("tournament_id", tournament.id).maybeSingle(),
-    supabase.from("courts").select("*").eq("tournament_id", tournament.id).order("name"),
-    supabase.from("categories").select("*").eq("tournament_id", tournament.id).order("name"),
-    supabase
-      .from("matches")
-      .select(`
-        *,
-        court:courts(*),
-        entry_a:entries!matches_entry_a_id_fkey(*),
-        entry_b:entries!matches_entry_b_id_fkey(*),
-        games:match_games(*)
-      `)
-      .eq("tournament_id", tournament.id)
-      .eq("status", "LIVE"),
-  ]);
-
-  return {
-    tournament: tournament as Tournament,
-    branding: brandingRes.data as TournamentBranding | null,
-    courts: (courtsRes.data || []) as Court[],
-    categories: (categoriesRes.data || []) as Category[],
-    liveMatches: liveMatchesRes.data || [],
-  };
-}
-
-export async function listMyTournaments() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return [];
-
-  const { data: tournaments, error } = await supabase
-    .from("tournaments")
-    .select(`
-      *,
-      branding:tournament_branding(*),
-      categories(count),
-      courts(count),
-      matches(count)
-    `)
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) return [];
-  return tournaments;
-}
-
-export async function publishTournament(tournamentId: string) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("tournaments")
-    .update({ status: "PUBLISHED", updated_at: new Date().toISOString() })
-    .eq("id", tournamentId);
-
-  if (error) throw new Error(error.message);
+  // Remove stored images first; the folder is named after the tournament.
+  const { data: files } = await supabase.storage.from("tournament-media").list(tournamentId, { limit: 100 });
+  if (files?.length) {
+    await supabase.storage.from("tournament-media").remove(files.map((f) => `${tournamentId}/${f.name}`));
+  }
+  const { error } = await supabase.from("tournaments").delete().eq("id", tournamentId);
+  if (error) return { ok: false, error: explainDbError(error.message) };
   revalidatePath("/dashboard");
-  return { success: true };
+  redirect("/dashboard");
+}
+
+export async function setTournamentImage(
+  tournamentId: string,
+  kind: "logo" | "banner",
+  path: string | null
+): Promise<ActionResult> {
+  if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
+  if (kind !== "logo" && kind !== "banner") return { ok: false, error: "Invalid image." };
+  if (path !== null && !new RegExp(`^${tournamentId}/(logo|banner)-[a-z0-9-]{8,40}\\.(webp|png|jpg)$`).test(path)) {
+    return { ok: false, error: "Invalid file path." };
+  }
+
+  const { supabase } = await requireUser();
+  const column = kind === "logo" ? "logo_path" : "banner_path";
+  const { data: before } = await supabase.from("tournaments").select(column).eq("id", tournamentId).maybeSingle();
+  const { error } = await supabase.from("tournaments").update({ [column]: path }).eq("id", tournamentId);
+  if (error) return { ok: false, error: explainDbError(error.message) };
+
+  const old = (before as Record<string, string | null> | null)?.[column];
+  if (old && old !== path) await supabase.storage.from("tournament-media").remove([old]);
+
+  revalidatePath(`/dashboard/t/${tournamentId}`, "layout");
+  return { ok: true };
+}
+
+export async function signOut() {
+  const { supabase } = await requireUser();
+  await supabase.auth.signOut();
+  redirect("/");
 }

@@ -41,7 +41,7 @@ ShuttleLive is a **generic, multi-tenant badminton platform**. While its initial
 - [Branded Public Microsite Wireframe](file:///D:/ShuttleLive/shuttlelive/docs/UI_UX.md#2-branded-public-microsite-wireframe-tslug)
 - [Appearance & Branding Studio Wireframe](file:///D:/ShuttleLive/shuttlelive/docs/UI_UX.md#3-appearance--branding-studio-wireframe-s-org-10)
 - [Post-Event Hall of Fame & Winners Podium](file:///D:/ShuttleLive/shuttlelive/docs/UI_UX.md#4-post-event-hall-of-fame-showcase-wireframe-s-pub-10)
-- [Live Scorer Wireframe](file:///D:/ShuttleLive/shuttlelive/docs/UI_UX.md#31-live-scorer-board-s-scr-03)
+- [Organizer Scoring Console](file:///D:/ShuttleLive/shuttlelive/docs/UI_UX.md#31-live-scorer-board-s-scr-03)
 
 ### 4. QA & Launch Readiness
 - [28-Point Launch Acceptance QA Checklist](file:///D:/ShuttleLive/shuttlelive/docs/IMPLEMENTATION_PLAN.md#2-launch-acceptance-qa-checklist-28-test-cases)

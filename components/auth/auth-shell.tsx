@@ -14,7 +14,7 @@ export function AuthShell({
   title,
   subtitle,
   panelTitle = "Run the tournament. Everyone follows the score.",
-  panelBody = "Draws, court schedules, one-tap umpire scoring and a live page for every event.",
+  panelBody = "Draws, court schedules, one-tap scoring and a live page for every event.",
   children,
 }: AuthShellProps) {
   return (

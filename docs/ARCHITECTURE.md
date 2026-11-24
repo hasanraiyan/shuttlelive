@@ -1,3 +1,5 @@
+> **v1.3 note:** The umpire/PIN role is removed from Phase 0. The canonical Phase 0 schema and security model are in `supabase/migrations/20261125000003_p0_secure_core.sql`; SQL samples below that differ from it are historical.
+
 # Technical Architecture & System Design
 ## Badminton Live (ShuttleLive) — Multi-Tenant & Supabase-Native Architecture
 
@@ -12,7 +14,7 @@
 ```
                                   [ CLIENT TIER ]
    ┌───────────────────────────┬───────────────────────────┬───────────────────────────┐
-   │    Spectator Device       │      Scorer Mobile        │    Organizer Dashboard    │
+   │    Spectator Device       │      Organizer Phone      │    Organizer Dashboard    │
    │  (Branded Microsite /t/*) │ (Offline Queue + Next.js) │(Branding Studio & Admin)  │
    └─────────────┬─────────────┴─────────────┬─────────────┴─────────────┬─────────────┘
                  │                           │                           │
@@ -27,9 +29,9 @@
    │                                                                                   │
    │  ┌─────────────────────────┐  ┌────────────────────────┐  ┌────────────────────┐  │
    │  │   Supabase Realtime     │  │  PostgreSQL Engine     │  │   Supabase Auth    │  │
-   │  │  • Broadcast (<100ms)   │  │  • Stored RPCs (Atomic)│  │  • Magic Links/OTP │  │
+   │  │  • Broadcast (<100ms)   │  │  • Stored RPCs (Atomic)│  │  • Email + Google  │  │
    │  │  • Postgres CDC Changes │  │  • Row Level Security  │  │  • JWT Custom Claim│  │
-   │  │  • Presence Tracking    │  │  • pg_trgm Fast Search │  │  • Scorer Fast-Pass│  │
+   │  │  • Presence Tracking    │  │  • pg_trgm Fast Search │  │  • Owner-only RLS  │  │
    │  └─────────────────────────┘  └────────────────────────┘  └────────────────────┘  │
    │                                                                                   │
    │  ┌─────────────────────────────────────────────────────────────────────────────┐  │
@@ -54,18 +56,18 @@ Rather than relying solely on database replication polling, ShuttleLive uses all
 | Mode              | Technical Channel                 | Application Use Case            |
 +-------------------+-----------------------------------+---------------------------------+
 | 1. Broadcast      | `supabase.channel('match:123')`   | Sub-100ms instant point delta   |
-|                   | `.send({ type: 'broadcast' })`    | from umpire to spectators.      |
+|                   | `.send({ type: 'broadcast' })`    | from organizer to spectators.      |
 +-------------------+-----------------------------------+---------------------------------+
 | 2. Postgres CDC   | `postgres_changes` on             | Guarantees permanent state      |
 |    (Changes)      | `table: matches, match_events`    | sync across all tabs on commit. |
 +-------------------+-----------------------------------+---------------------------------+
-| 3. Presence       | `presence.track({ court, role })` | Tracks live umpires on court &  |
+| 3. Presence       | `presence.track({ court, role })` | Tracks live audience (P1) &     |
 |                   |                                   | spectator headcount per match.  |
 +-------------------+-----------------------------------+---------------------------------+
 ```
 
 #### Realtime Latency Optimization Flow:
-1. Umpire taps `+1 Point`.
+1. Organizer taps `+1 Point`.
 2. Client emits an instantaneous **Supabase Realtime Broadcast** event over WebSockets (`match:id`). Spectators receive and render the incremented point within **~50–100ms**.
 3. In parallel, client invokes the authoritative PostgreSQL RPC `record_point_event()`.
 4. PostgreSQL commits the transaction, writes to `match_events`, and triggers **Postgres CDC**, which confirms the persistent canonical state to all connected clients.
@@ -218,8 +220,8 @@ $$;
 ---
 
 ### 2.3 Supabase Auth & JWT Custom Claims
-1. **Magic Link & One-Time Password (OTP) for Umpires:**
-   - Court referees don't need passwords. The tournament organizer generates a 6-digit match assignment PIN or triggers a Supabase Auth OTP via SMS/Email.
+1. **Organizer-only authentication (v1.3):**
+   - Organizers sign in with email/password or Google. There is no umpire, PIN or OTP login in Phase 0; the tournament owner scores matches from the dashboard.
 2. **Custom Claims in JWT:**
    - Using Supabase Auth hooks, the user's JWT includes:
      ```json
@@ -441,15 +443,9 @@ USING (EXISTS (
     AND tournaments.status != 'DRAFT'
 ));
 
--- 4. Authorized umpires can execute match scoring RPCs
-CREATE POLICY "Assigned Umpire Match Scoring"
-ON matches FOR UPDATE
-USING (EXISTS (
-    SELECT 1 FROM match_assignments 
-    WHERE match_assignments.match_id = matches.id 
-    AND match_assignments.user_id = auth.uid()
-    AND match_assignments.is_active = TRUE
-));
+-- 4. Scoring is performed only through apply_match_command(), a SECURITY DEFINER
+--    function that checks the caller owns the tournament. Clients have no direct
+--    UPDATE rights on score columns and no write access to match_events.
 ```
 
 ---

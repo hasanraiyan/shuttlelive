@@ -1,13 +1,19 @@
 # Software Requirements Specification (SRS)
 ## Badminton Live (ShuttleLive) — Multi-Tenant Tournament Management & Live Scoring Platform
 
-**Document Version:** 1.2.0  
-**Status:** Draft — Pending Review (Multi-Tenant & Branding Baseline)  
+**Document Version:** 1.3.0  
+**Status:** Draft — Phase 0 baseline (single organizer role)  
 **Last Updated:** November 2026  
 **Product Vision:** *"Create. Compete. Follow Live."*  
 **Platform Architecture:** Multi-Tenant Tournament Operating System with Custom Branded Microsites
 
 ---
+
+## Document Changelog (v1.2.0 -> v1.3.0)
+- **Umpire role removed from Phase 0:** There is no separate umpire, referee or scorer login, no court PIN and no magic-link/OTP fast-pass. The organizer who owns a tournament is the only person who can change it, including scoring its matches from the organizer console. Delegated scoring may return in a later phase as an explicit, audited feature (see §9).
+- **One account type:** Every signed-in user is an organizer of their own tournaments. Organization workspaces and collaborator roles stay in P1.
+- **Security requirements added:** New §6.1 lists the mandatory security controls for Phase 0 (row-level security on every table, owner checks inside every database function, immutable match log, storage path ownership, safe redirects, input validation, security headers).
+- **Player data minimised:** Players are stored with a name and an optional club only. Phone numbers and ID numbers are not collected in Phase 0.
 
 ## Document Changelog (v1.1.0 -> v1.2.0)
 - **Multi-Tenant Foundation Added:** Formally decoupled the platform from any single college or entity. Defined ShuttleLive as a multi-tenant platform supporting colleges, academies, corporate leagues, clubs, and independent organizers.
@@ -39,7 +45,7 @@
    - 4.3 Module 3: Tournament Lifecycle & Configuration
    - 4.4 Module 4: Categories & Eligibility Rules
    - 4.5 Module 5: Draw, Bracketing & Fixture Management
-   - 4.6 Module 6: Live Scoring & Umpire State Machine
+   - 4.6 Module 6: Live Scoring State Machine (Organizer Console)
    - 4.7 Module 7: Public Live Experience & Match Center
    - 4.8 Module 8: Deterministic Fact-Based Commentary & Streaming
    - 4.9 Module 9: Statistics, Standings & Performance Tracking
@@ -74,7 +80,7 @@ The platform is **strictly generic and tenant-agnostic**:
         ▼                                   ▼                                   ▼
  [ ORGANIZATION TENANT ]           [ ACADEMY / CLUB TENANT ]         [ INDEPENDENT ORGANIZER ]
   e.g., MIT Muzaffarpur             e.g., Smash Badminton Club        e.g., Weekend Smashers
-  - Reusable branding & logos       - Reusable coach/umpire team      - Direct tournament creation
+  - Reusable branding & logos       - Reusable member rosters         - Direct tournament creation
   - Multi-season history            - Member player rosters           - No formal org required
   - Multi-department teams          - Multi-category tournaments      - Lightweight setup
         │                                   │                                   │
@@ -141,7 +147,7 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 ### 3.1 Organization Workspaces vs Independent Organizers
 1. **Organization Workspaces [P1]:**
    - Designed for colleges, sports clubs, and tournament companies.
-   - Multiple team members can collaborate under one organization (Roles: `Owner`, `Admin`, `Tournament Director`, `Umpire`).
+   - Multiple team members can collaborate under one organization (Roles: `Owner`, `Admin`, `Tournament Director`).
    - Centralizes player rosters, past tournament records, and billing/plans.
 2. **Independent Organizers [P0 Core]:**
    - Any individual can sign in and create a tournament directly without creating an organization.
@@ -149,7 +155,7 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 
 ### 3.2 Tenant Isolation & Access Boundaries
 - **Logical Multi-Tenancy:** All tenant data resides in a shared PostgreSQL database isolated via `organization_id` and `tournament_id` foreign keys.
-- **Row Level Security (RLS):** Strict Supabase RLS policies guarantee that an organizer or umpire from Organization A cannot view, update, or score matches belonging to Organization B.
+- **Row Level Security (RLS):** Strict Supabase RLS policies guarantee that an organizer cannot view unpublished data of, update, or score matches belonging to another organizer's tournament. In Phase 0 the tournament owner is the only account with write access to a tournament.
 - **Public Isolation:** Public spectators have read access strictly to published tournament records and sanctioned live channels.
 
 ---
@@ -189,7 +195,7 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 - **FR-BRD-08 (Hashtag & Social Campaign):**
   - Custom tournament hashtag (e.g., `#MITSmash2026`) with 1-click copy for social sharing.
 - **FR-BRD-09 (Non-Destructive Live Branding Edits):**
-  - Organizers can update banners, announcements, sponsor logos, or venue descriptions while matches are actively live **without restarting matches, invalidating versions, or disrupting live umpires**.
+  - Organizers can update banners, announcements, sponsor logos, or venue descriptions while matches are actively live **without restarting matches, invalidating versions, or disrupting live scoring**.
 
 ### 4.12 Module 12: Public Microsite & Post-Event Experience
 - **FR-MIC-01 (Dedicated Public Microsite):** Every published tournament serves a self-contained microsite at `/t/[slug]`.
@@ -234,21 +240,36 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 *(Preserved in full from v1.1.0)*
 - Supports BWF Standard 3×21 (cap 30) and BAI Domestic Standard 3×15 (cap 21).
 - 4-level rule inheritance (`Tournament` -> `Category` -> `Round` -> `Match Snapshot`).
-- Single-tap umpire board, append-only `UNDO`, and `MATCH_WON_PENDING` confirmation state.
+- Single-tap scoring board operated by the tournament organizer, append-only `UNDO`, and `MATCH_WON_PENDING` confirmation state.
+- **FR-SCR-01 (Who can score):** Only the signed-in owner of the tournament can start, score, undo, confirm or terminate its matches. Every scoring command is checked against the caller's identity inside the database, not only in the web app.
+- **FR-SCR-02 (Idempotency & concurrency):** Each command carries a client event id (duplicates are ignored) and the expected match version (a stale version returns `409 Conflict`), so the same organizer scoring from two tabs cannot double-count a rally.
+- **FR-SCR-03 (Court and player clashes):** A match cannot start on a court that already has a match in progress, or while one of its players is in another match in progress.
 - Complete walkover, retirement, and disqualification protocols without artificial score fabrication.
 
 ---
 
 ## 6. Non-Functional Requirements (NFR)
-- **NFR-SUPA-01 (Tri-Mode Supabase Realtime):** Sub-100ms point propagation via Supabase Realtime Broadcast channels; Postgres CDC for verified canonical persistence; Presence tracking for court umpires and live audience headcount.
+- **NFR-SUPA-01 (Tri-Mode Supabase Realtime):** Sub-100ms point propagation via Supabase Realtime Broadcast channels; Postgres CDC for verified canonical persistence; Presence tracking for live audience headcount (P1).
 - **NFR-SUPA-02 (Authoritative PostgreSQL RPCs):** Scoring state changes, deuce checks, intervals, and match completions execute atomically inside PostgreSQL stored procedures (`record_point_event()`) to eliminate race conditions and client-side tampering.
 - **NFR-SUPA-03 (Supabase Storage Image Transformation):** Client asset delivery utilizes built-in Supabase Storage Image Transformation (`?width=400&format=webp`) for instant, bandwidth-efficient mobile rendering without server-side image processing overhead.
-- **NFR-SUPA-04 (Umpire Passwordless Fast-Pass):** Court referees authenticate via Supabase Auth Magic Links or 6-digit match assignment OTPs, eliminating password hurdles on match day.
 - **NFR-SUPA-05 (PostgreSQL Trigram Search):** Global platform search leverages PostgreSQL `pg_trgm` extension for fuzzy search across public tournaments, teams, and athletes in $< 50\text{ ms}$.
 - **NFR-PERF-01 (Multi-Tenant Isolation):** Database queries MUST strictly include tenant scoping filters. Cross-tenant leakage is guarded by Supabase RLS policies.
 - **NFR-PERF-02 (Sub-Second Live Propagation):** Realtime score distribution across WebSockets $< 800\text{ ms}$; Edge HTTP polling fallback $< 2.5\text{ s}$.
 - **NFR-USE-01 (Brand Accessibility):** Automated WCAG 2.1 AA luminance checking for all custom brand color selections.
 - **NFR-AVAIL-01 (Permanent Event Archiving):** Completed tournaments remain accessible indefinitely under their permanent slug as a permanent digital record for colleges and clubs.
+
+### 6.1 Security Requirements (Phase 0, mandatory)
+- **SEC-01 (Row-level security everywhere):** Every table in the `public` schema has RLS enabled with explicit policies. A table without policies is a defect.
+- **SEC-02 (Owner-only writes):** Inserts, updates and deletes on tournament data are allowed only when `auth.uid()` owns the parent tournament. Anonymous visitors have read-only access to tournaments that are not in `DRAFT`.
+- **SEC-03 (Hardened database functions):** Any `SECURITY DEFINER` function sets an empty `search_path`, checks tournament ownership itself, and is not executable by the `anon` role.
+- **SEC-04 (Immutable match log):** `match_events` cannot be updated or deleted by any client. Scores change only through the scoring function; clients cannot write score columns directly.
+- **SEC-05 (Storage ownership):** Uploads go to `tournament-media/{tournament_id}/…` and are allowed only for that tournament's owner. Only JPEG, PNG and WebP up to 5 MB are accepted; SVG is rejected.
+- **SEC-06 (Input validation):** All server actions validate input lengths, formats (slug, URLs, dates) and enums on the server before touching the database; the database repeats the critical checks as constraints.
+- **SEC-07 (Safe redirects):** Post-login redirects accept only same-site relative paths, never absolute or protocol-relative URLs.
+- **SEC-08 (Session handling):** Sessions are refreshed by the Next.js proxy and verified on the server with Supabase Auth before any privileged action. Signed-out users are redirected away from `/dashboard`.
+- **SEC-09 (HTTP security headers):** Responses include `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, a strict `Referrer-Policy`, a restrictive `Permissions-Policy`, and HSTS.
+- **SEC-10 (Data minimisation):** Only data needed to run the event is stored. Player records hold a name and an optional club.
+- **SEC-11 (Secrets):** Only the publishable key is shipped to the browser. Service-role keys are never used by the web app.
 
 ---
 
@@ -269,7 +290,7 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 |  - Core Tournament Management (Categories, Singles/Doubles entries, Courts)             |
 |  - Scoring Presets (3x21 BWF and 3x15 BAI domestic)                                     |
 |  - Knockout Bracket Generator (Auto-Byes) + Manual Fixture Editor                       |
-|  - 1-Tap Umpire Scoring Board (Points, Service side, Undo, Interval, Confirm)           |
+|  - 1-Tap Organizer Scoring Board (Points, Service side, Undo, Interval, Confirm)        |
 |  - Realtime Live Scoreboard & Direct WhatsApp Match Share                               |
 +-----------------------------------------------------------------------------------------+
 | [P1] FAST FOLLOW-UP (Multi-Tenant Growth)                                               |
@@ -299,3 +320,8 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 - **UI Inventory, Branding Studio & Wireframes:** [`docs/UI_UX.md`](file:///D:/ShuttleLive/shuttlelive/docs/UI_UX.md)
 - **Implementation Tasks & QA Test Cases:** [`docs/IMPLEMENTATION_PLAN.md`](file:///D:/ShuttleLive/shuttlelive/docs/IMPLEMENTATION_PLAN.md)
 - **Central Documentation Hub:** [`docs/README.md`](file:///D:/ShuttleLive/shuttlelive/docs/README.md)
+
+---
+
+## 9. Deferred: Delegated Scoring (not in Phase 0)
+A separate umpire role (court PINs, magic links or OTP) was removed from Phase 0 because a PIN that unlocks scoring is a shared secret that is easy to leak or guess, and it splits accountability for the match record. If delegated scoring returns, it must: be scoped to a single match, expire, be revocable by the organizer, be rate limited, bind to one device at a time, and record who entered each point.

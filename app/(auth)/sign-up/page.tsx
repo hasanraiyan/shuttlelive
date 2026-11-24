@@ -118,10 +118,10 @@ export default function SignUpPage() {
             <Field
               id="password"
               label="Password"
-              hint="at least 6 characters"
+              hint="at least 8 characters"
               type="password"
               required
-              minLength={6}
+              minLength={8}
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

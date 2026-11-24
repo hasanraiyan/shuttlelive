@@ -166,7 +166,7 @@ export function CourtScoreboard() {
         )}
       </div>
 
-      {/* Umpire controls */}
+      {/* Scoring controls */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         {state.winner ? (
           <button
