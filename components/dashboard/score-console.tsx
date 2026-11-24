@@ -283,7 +283,7 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
   const restKey = `${m.status}-${m.current_game}-${m.score_a}-${m.score_b}`;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl pb-20">
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
         <Link href={`/dashboard/t/${tid}`} className="text-ink-soft hover:text-ink">
           Back to matches
@@ -295,16 +295,11 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
         </p>
       </div>
 
-      {pending > 0 && (
-        <p role="status" className={cn("mt-3 rounded-md px-3 py-2 text-sm", offline ? "bg-warn/15" : "bg-surface-2 text-ink-soft")}>
-          {offline
-            ? `No connection. ${pending} tap${pending === 1 ? " is" : "s are"} saved on this phone and will be sent when you're back online. Keep scoring.`
-            : `Saving ${pending} tap${pending === 1 ? "" : "s"}…`}
-        </p>
-      )}
+      {/* Save status: a fixed-size slot, so nothing above the score buttons ever moves. */}
+      <SaveStatus pending={pending} offline={offline} />
 
       {/* Scoreboard: each half is the button for that side */}
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:gap-3">
         {(["A", "B"] as Side[]).map((side) => {
           const score = side === "A" ? m.score_a : m.score_b;
           const games = side === "A" ? m.games_won_a : m.games_won_b;
@@ -348,7 +343,9 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
         })}
       </div>
 
-      <div aria-live="polite" className="mt-4 min-h-6 text-center font-semibold">
+      {/* Fixed-height row for the call and the rest timer, so Undo below never moves. */}
+      <div className="mt-3 flex h-16 items-center justify-center gap-3 overflow-hidden">
+      <div aria-live="polite" className="text-center font-semibold">
         <span className="sr-only">
           {names.A} {m.score_a}, {names.B} {m.score_b}.
         </span>
@@ -360,13 +357,18 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
           </span>
         )}
       </div>
-
       {rest && <RestTimer key={restKey} seconds={rest} label={rest === 60 ? "Interval" : "Break between games"} />}
+      </div>
 
-      {error && (
-        <div className="mt-3">
-          <Notice tone="error">{error}</Notice>
-        </div>
+      {offline && pending > 0 && (
+        <p
+          role="status"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-warn bg-surface px-4 py-3 text-center text-sm font-semibold text-ink shadow-[0_-8px_24px_-12px_var(--ink)]"
+        >
+          <span className="mr-2 inline-block size-2 rounded-full bg-warn align-middle" aria-hidden="true" />
+          No connection. {pending} tap{pending === 1 ? " is" : "s are"} saved on this phone and will be sent when you&apos;re back
+          online. Keep scoring.
+        </p>
       )}
 
       {/* Context actions */}
@@ -403,6 +405,12 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
           </Button>
         )}
       </div>
+
+      {error && (
+        <div className="mt-4">
+          <Notice tone="error">{error}</Notice>
+        </div>
+      )}
 
       {m.games.length > 0 && (
         <table className="mx-auto mt-8 text-sm">
@@ -490,22 +498,22 @@ function RestTimer({ seconds, label }: { seconds: number; label: string }) {
   const ss = String(left % 60).padStart(2, "0");
   const warning = left <= 20 && left > 0;
   return (
-    <div className="mt-3 flex items-center justify-center gap-3">
+    <div className="flex shrink-0 items-center gap-1">
       <p
         role="timer"
         aria-label={`${label}, ${left} seconds left`}
         className={cn(
-          "rounded-md px-4 py-2 text-center",
+          "rounded-md px-3 py-1 text-center whitespace-nowrap",
           left === 0 ? "bg-warn/20" : warning ? "bg-warn/15" : "bg-surface-2"
         )}
       >
-        <span className="text-sm text-ink-soft">{left === 0 ? `${label} over. Call the players back` : label}</span>{" "}
-        <span className="font-score text-3xl tabular-nums">
+        <span className="text-sm text-ink-soft">{left === 0 ? `${label} over` : label}</span>{" "}
+        <span className="font-score text-2xl tabular-nums">
           {mm}:{ss}
         </span>
       </p>
-      <Button size="sm" variant="ghost" onClick={() => setHidden(true)}>
-        Hide
+      <Button size="sm" variant="ghost" aria-label="Hide timer" onClick={() => setHidden(true)}>
+        ×
       </Button>
     </div>
   );
@@ -516,5 +524,31 @@ function EndButton({ label, confirm, onConfirm, busy }: { label: string; confirm
     <Button size="sm" variant="danger" disabled={busy} onClick={() => window.confirm(confirm) && onConfirm()}>
       {label}
     </Button>
+  );
+}
+
+/**
+ * "Saved" / "Saving…" indicator in a fixed-height slot. "Saving…" only appears
+ * if a save takes longer than a moment, so normal taps don't flicker it.
+ */
+function SaveStatus({ pending, offline }: { pending: number; offline: boolean }) {
+  const [slow, setSlow] = React.useState(false);
+  React.useEffect(() => {
+    if (!pending) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the delayed indicator
+      setSlow(false);
+      return;
+    }
+    const id = setTimeout(() => setSlow(true), 700);
+    return () => clearTimeout(id);
+  }, [pending]);
+
+  const label = offline && pending ? `${pending} waiting to send` : pending && slow ? "Saving…" : "All changes saved";
+  const dot = offline && pending ? "bg-warn" : pending && slow ? "bg-ink-soft animate-pulse motion-reduce:animate-none" : "bg-live";
+  return (
+    <p role="status" aria-live="polite" className="mt-2 flex h-5 items-center justify-end gap-1.5 text-xs text-ink-soft">
+      <span className={cn("size-1.5 rounded-full", dot)} aria-hidden="true" />
+      {label}
+    </p>
   );
 }

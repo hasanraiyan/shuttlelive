@@ -6,6 +6,7 @@ import { MatchCenter } from "@/components/tournament/match-center";
 import { brandVars } from "@/lib/color";
 import { getDraftCommentary, getPublicBundle, getPublicCommentary } from "@/lib/data";
 import { resolvePublic } from "@/lib/public";
+import { siteUrl } from "@/lib/format";
 import { roundName } from "@/lib/scoring";
 
 export async function generateMetadata({ params }: PageProps<"/t/[slug]/m/[matchId]">): Promise<Metadata> {
@@ -56,6 +57,8 @@ async function Content({ params }: { params: Promise<{ slug: string; matchId: st
           tournamentId={b.tournament.id}
           backHref={quick ? "/" : `/t/${b.tournament.slug}`}
           backLabel={quick ? "ShuttleLive" : b.tournament.name}
+          shareUrl={siteUrl(`/t/${b.tournament.slug}/m/${m.id}`)}
+          shareTitle={`${name(m.entry_a_id)} v ${name(m.entry_b_id)}`}
           initial={m}
           initialEvents={events}
           names={{ A: name(m.entry_a_id), B: name(m.entry_b_id) }}

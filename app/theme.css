@@ -20,6 +20,9 @@
   --sl-emerald: #10b981; /* live / point won */
   --sl-amber: #f59e0b; /* interval, deuce, undo */
   --sl-rose: #f43f5e; /* fault, retirement, errors */
+  /* Match charts: side A / side B (validated for colour-blind separation). */
+  --sl-side-a: #2a78d6;
+  --sl-side-b: #eb6834;
 }
 
 /* 2. Semantic roles — light */
@@ -36,6 +39,8 @@
   --warn: var(--sl-amber);
   --fault: var(--sl-rose);
   --on-dark: var(--sl-paper);
+  --side-a: var(--sl-side-a);
+  --side-b: var(--sl-side-b);
 }
 
 /* 2b. Semantic roles — dark (toggled by a .dark class on <html>) */
@@ -45,6 +50,8 @@
   --ink: var(--sl-stone);
   --ink-soft: color-mix(in oklab, var(--sl-slate) 70%, var(--sl-paper));
   --line: color-mix(in oklab, var(--sl-ink) 82%, var(--sl-paper));
+  --side-a: #3987e5;
+  --side-b: #d95926;
 }
 
 /* 3. Tailwind colour + font names */
@@ -61,6 +68,8 @@
   --color-warn: var(--warn);
   --color-fault: var(--fault);
   --color-on-dark: var(--on-dark);
+  --color-side-a: var(--side-a);
+  --color-side-b: var(--side-b);
 
   /* Fonts: Barlow for text, Barlow Condensed for scores and headlines.
      To change them, swap the imports in app/layout.tsx. */

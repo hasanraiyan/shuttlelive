@@ -3,9 +3,9 @@
 import * as React from "react";
 
 /** Copy link and WhatsApp share for the public page. */
-export function ShareLinks({ url, title }: { url: string; title: string }) {
+export function ShareLinks({ url, title, text: custom }: { url: string; title: string; text?: string }) {
   const [copied, setCopied] = React.useState(false);
-  const text = `${title}: follow live scores at ${url}`;
+  const text = custom ?? `${title}: follow live scores at ${url}`;
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-4 py-3 text-sm">
       <span className="mr-auto min-w-0 truncate text-ink-soft">{url}</span>
