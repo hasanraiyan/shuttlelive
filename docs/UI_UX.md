@@ -1,9 +1,9 @@
 # UI / UX Specification & Screen Inventory
 ## Badminton Live (ShuttleLive) — Multi-Tenant Branded Microsite Design
 
-**Document Version:** 1.2.0  
-**Status:** Draft — Pending Review  
-**Design System:** Tailwind CSS v4, shadcn/ui, Lucide React, Mobile-First Responsive
+**Document Version:** 1.4.0  
+**Status:** Implemented Baseline — Phase 0 & Phase 1 Complete  
+**Design System:** Tailwind CSS v4, shadcn/ui, Lucide React, Mobile-First Responsive, Barlow / Barlow Condensed Typography
 
 ---
 
@@ -162,4 +162,105 @@ To guarantee readability under direct sunlight in indoor/outdoor gymnasiums:
    - If $L \ge 0.4$, header typography defaults to `#0F172A` (Deep slate).
 3. **Touch Ergonomics Preservation:**
    - Custom branding is strictly applied to banners, badges, and headers.
-   - **The Live Scorer Court Interface (S-SCR-03) preserves standard high-visibility system colors** (Emerald Green for Score +1, Amber for Undo, Rose for Fault) to eliminate cognitive confusion for the person scoring (umpires.
+   - **The Live Scorer Court Interface (S-SCR-03) preserves standard high-visibility system colors** (Emerald Green for Score +1, Amber for Undo, Rose for Fault) to eliminate cognitive confusion for the person scoring.
+
+---
+
+## 6. Cricbuzz-Style Match Center Wireframe (`/t/[slug]/m/[matchId]`)
+
+```
++--------------------------------------------------------------------------------+
+|  < MIT Badminton Championship 2026                            [ Share ↗ ]      |
++--------------------------------------------------------------------------------+
+|  COURT 1 · MEN'S SINGLES (FINAL)                                ● LIVE · GAME 2 |
+|                                                                                |
+|  Side A: Aman Kumar (IT)               1  [ 18 ] 🏸                            |
+|  Side B: Rahul Sharma (CSE)            0  [ 16 ]                               |
+|                                                                                |
+|  Game 1: 21–18  ·  Game 2: 18–16 (in progress)  ·  Decider G3: --              |
++--------------------------------------------------------------------------------+
+|  [ Scorecard ]     [ Live Feed ]     [ Lead Chart ]     [ Match Stats ]        |
++--------------------------------------------------------------------------------+
+|                                                                                |
+|  TAB 1: SCORECARD                                                              |
+|  Detailed point-by-point game breakdown and player service performance.        |
+|                                                                                |
+|  TAB 2: LIVE FEED (Deterministic Fact-Based Commentary)                        |
+|  • 18–16: Aman smashes cross-court to maintain 2-point cushion.                |
+|  • 17–16: Rahul wins rally on Side A unforced error.                           |
+|  • 17–15: Streak! Aman takes 3 points in a row to snatch back the lead.        |
+|  • 11–10: Interval reached in Game 2. Players change ends.                     |
+|                                                                                |
+|  TAB 3: LEAD CHART ("Worm" Graph)                                              |
+|  Interactive SVG visualization of score lead progression over the entire game: |
+|                                                                                |
+|  Side A (+Lead)  ▲       ╭───╮             ╭───                        |
+|                  │  ╭────╯   ╰──╮       ╭──╯                           |
+|  Level (0) ------┼──╯───────────╰───────╯─────── (Baseline)            |
+|                  │                     ╭╯                              |
+|  Side B (-Lead)  ▼                     ╰──                             |
+|                  0        5        10       15       20  (Rallies)     |
+|                                                                                |
+|  TAB 4: MATCH STATS                                                            |
+|  • Total Rallies Played: 68                                                    |
+|  • Longest Streak: Aman (5 points) vs Rahul (4 points)                         |
+|  • Service Hold Rate: 58% (Side A) vs 47% (Side B)                             |
+|  • Lead Changes: 4 in Game 1, 3 in Game 2                                      |
+|  • Biggest Comeback: Rahul from 4 points down in Game 1                        |
++--------------------------------------------------------------------------------+
+```
+
+---
+
+## 7. Printable Stadium QR Poster Wireframe (`/dashboard/t/[id]/poster`)
+
+```
++--------------------------------------------------------------------------------+
+|  +--------------------------------------------------------------------------+  |
+|  | [TOURNAMENT LOGO]            MIT BADMINTON CHAMPIONSHIP 2026             |  |
+|  |                                                                          |  |
+|  |                         FOLLOW ALL MATCHES LIVE!                          |  |
+|  |                                                                          |  |
+|  |                           +------------------+                           |  |
+|  |                           |  ██████  ██  ██  |                           |  |
+|  |                           |  ██  ██  ██████  |                           |  |
+|  |                           |  ██████  ██  ██  |   <- High-Resolution      |  |
+|  |                           |  ██  ██  ██████  |      Printable QR Code    |  |
+|  |                           |  ██████  ██  ██  |      resolving to         |  |
+|  |                           +------------------+      /t/[slug]            |  |
+|  |                                                                          |  |
+|  |                          Scan with your phone camera                     |  |
+|  |                      Live Scores · Draws · Order of Play                 |  |
+|  |                                                                          |  |
+|  |  📍 College Indoor Badminton Arena        📅 25–27 November 2026         |  |
+|  |  Hosted by: Department of Information Technology                         |  |
+|  |                                                                          |  |
+|  |  Powered by ShuttleLive · Badminton Tournament OS                        |  |
+|  +--------------------------------------------------------------------------+  |
+|                                                                                |
+|  [ 🖨️ Print Poster (A4 / Letter) ]        [ 📥 Download High-Res SVG/PNG ]     |
++--------------------------------------------------------------------------------+
+```
+
+---
+
+## 8. Standalone Quick Match Wireframe (`/dashboard/quick`)
+
+```
++--------------------------------------------------------------------------------+
+|  < Dashboard / Quick Match (No Tournament Needed)                              |
++--------------------------------------------------------------------------------+
+|  Match Format:       (o) Singles      ( ) Doubles                              |
+|  Scoring Preset:     (o) BWF 3×21     ( ) BAI 3×15     ( ) 1 Game to 21        |
+|                                                                                |
+|  Side A Player / Team: [ Aman Kumar                       ]                    |
+|  Side B Player / Team: [ Rahul Sharma                     ]                    |
+|  Court Name / Number:  [ Court 1                          ]                    |
+|                                                                                |
+|  [ START SCORING IMMEDIATELY 🚀 ]                                              |
+|                                                                                |
+|  * Creates an unlisted match that opens directly into the scoring console     |
+|    and generates an instant public share link for spectators.                  |
++--------------------------------------------------------------------------------+
+```
+

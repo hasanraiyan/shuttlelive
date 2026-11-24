@@ -83,6 +83,33 @@ export function MatchCenter(props: Props) {
           const won = side === "A" ? m.games_won_a : m.games_won_b;
           const serving = live && m.serving_side === side;
           const winner = isDone(m) && m.winner_side === side;
+          const otherSide: Side = side === "A" ? "B" : "A";
+          const isTerminated = isDone(m) && m.result_reason && m.result_reason !== "NORMAL";
+          const isLoser = isDone(m) && m.winner_side === otherSide;
+
+          let subtitle = "";
+          if (isTerminated) {
+            if (winner) {
+              const reasonText =
+                m.result_reason === "DISQUALIFICATION"
+                  ? "disqualification"
+                  : m.result_reason === "RETIREMENT"
+                    ? "retirement"
+                    : "walkover";
+              subtitle = won > 0 ? `Games ${won} · Won by ${reasonText}` : `Won by ${reasonText}`;
+            } else if (isLoser) {
+              subtitle =
+                m.result_reason === "DISQUALIFICATION"
+                  ? "Disqualified"
+                  : m.result_reason === "RETIREMENT"
+                    ? "Retired"
+                    : "Conceded walkover";
+            }
+          } else {
+            subtitle = bestOf > 1 ? `Games ${won}` : "";
+            if (serving) subtitle += `${subtitle ? ", " : ""}serving`;
+          }
+
           return (
             <div key={side} className={cn("flex items-center gap-3 px-4 py-4 sm:px-6", i === 1 && "border-t border-line")}>
               <span className={cn("h-8 w-1 shrink-0 rounded-full", side === "A" ? "bg-side-a" : "bg-side-b")} aria-hidden="true" />
@@ -91,10 +118,7 @@ export function MatchCenter(props: Props) {
                   {names[side]}
                   {winner && <span className="ml-2 text-sm font-semibold text-court">Winner</span>}
                 </p>
-                <p className="text-xs text-ink-soft">
-                  {bestOf > 1 && `Games ${won}`}
-                  {serving && `${bestOf > 1 ? ", " : ""}serving`}
-                </p>
+                {subtitle && <p className="text-xs text-ink-soft">{subtitle}</p>}
               </div>
               <div className="font-score flex items-baseline gap-3 text-ink-soft" aria-label="Game scores">
                 {m.games
@@ -113,9 +137,17 @@ export function MatchCenter(props: Props) {
           <span className="font-semibold">
             {call ??
               (isDone(m)
-                ? `${m.winner_side ? `${names[m.winner_side]} won` : "Match over"}${
-                    m.result_reason && m.result_reason !== "NORMAL" ? ` (${REASON_LABEL[m.result_reason].toLowerCase()})` : ""
-                  }`
+                ? m.winner_side
+                  ? m.result_reason && m.result_reason !== "NORMAL"
+                    ? `${names[m.winner_side]} won · ${names[m.winner_side === "A" ? "B" : "A"]} ${
+                        m.result_reason === "DISQUALIFICATION"
+                          ? "disqualified"
+                          : m.result_reason === "RETIREMENT"
+                            ? "retired"
+                            : "walkover"
+                      }`
+                    : `${names[m.winner_side]} won the match`
+                  : "Match over"
                 : live
                   ? `Game ${m.current_game} in play`
                   : STATUS_LABEL[m.status])}
@@ -203,7 +235,7 @@ export function MatchCenter(props: Props) {
         </section>
       )}
 
-      {stats.rallies.length > 0 && <StatsTable names={names} stats={stats} />}
+      {stats.rallies.length > 0 && <StatsTable names={names} stats={stats} isFinished={isDone(m)} />}
 
       <div className="mt-12">
         <ShareLinks
@@ -247,7 +279,15 @@ function CommentaryList({ lines, mounted }: { lines: Line[]; mounted: boolean })
   );
 }
 
-function StatsTable({ names, stats }: { names: Record<Side, string>; stats: ReturnType<typeof matchStats> }) {
+function StatsTable({
+  names,
+  stats,
+  isFinished,
+}: {
+  names: Record<Side, string>;
+  stats: ReturnType<typeof matchStats>;
+  isFinished: boolean;
+}) {
   const pct = (won: number, of: number) => (of ? `${won} of ${of} (${Math.round((won / of) * 100)}%)` : "None");
   const lead = (s: SideStats) => (s.biggestLead ? `${s.biggestLead.lead} points, game ${s.biggestLead.game}` : "Never led");
   const rows: { label: string; get: (s: SideStats) => string }[] = [
@@ -289,7 +329,7 @@ function StatsTable({ names, stats }: { names: Record<Side, string>; stats: Retu
               <tr key={g.game} className="border-b border-line">
                 <th scope="row" className="py-2 pr-4 font-normal text-ink-soft">
                   Game {g.game}
-                  {g.minutes ? `, ${g.minutes} min` : g.winner ? "" : ", in play"}
+                  {g.minutes ? `, ${g.minutes} min` : g.winner ? "" : isFinished ? " (unfinished)" : ", in play"}
                 </th>
                 <td className={cn("py-2 pr-4", g.winner === "A" && "font-semibold")}>{g.a}</td>
                 <td className={cn("py-2", g.winner === "B" && "font-semibold")}>{g.b}</td>

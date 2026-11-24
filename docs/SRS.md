@@ -2,7 +2,7 @@
 ## Badminton Live (ShuttleLive) — Multi-Tenant Tournament Management & Live Scoring Platform
 
 **Document Version:** 1.4.0  
-**Status:** Draft — Phase 0 complete, Phase 1 in progress  
+**Status:** Implemented Baseline — Phase 0 & Phase 1 Complete  
 **Last Updated:** November 2026  
 **Product Vision:** *"Create. Compete. Follow Live."*  
 **Platform Architecture:** Multi-Tenant Tournament Operating System with Custom Branded Microsites
@@ -10,12 +10,18 @@
 ---
 
 ## Document Changelog (v1.3.0 -> v1.4.0)
-- **Phase 1 items delivered:** organization workspaces (§3.1), appearance studio (FR-BRD-05), venue map embed and directions (FR-BRD-04), printable QR poster, champions podium (FR-MIC-05), fact-based live commentary and standalone quick matches.
-- **Roles (organizations):** `OWNER` manages members, invites, the organization, and can delete its tournaments. `ORGANIZER` runs the organization's tournaments (players, draws, scoring, settings) but cannot invite, change roles or delete tournaments. A tournament's creator keeps full control of it. An organization always keeps at least one owner.
-- **Invites:** one-time links tied to an email address, valid for 7 days, revocable. Accepting requires signing in with the invited email. Links are shared by the owner (copy or WhatsApp); no email is sent by the platform.
-- **Commentary:** generated only from recorded facts (rallies, streaks, intervals, deuce, game and match points, saves, game and match results, walkovers, retirements, disqualifications). Undone points never appear. The raw match log stays private; the public receives a filtered feed for published tournaments only.
-- **Quick matches:** a single match scored without creating a tournament. Published as unlisted, opens straight to its live scoreboard and commentary.
-- **Tests:** `supabase/tests/p1_features_test.sql` covers these rules alongside the Phase 0 suite.
+- **Phase 0 & Phase 1 Complete Baseline:**
+  - Multi-tenant organizations with member invitations (`OWNER` and `ORGANIZER` roles) via one-time tokens.
+  - Full match lifecycle PostgreSQL RPCs (`record_point_event`, `undo_point_event`, `start_match`, `start_next_game`, `finalize_match`, `terminate_match`).
+  - Appearance & Branding Studio (logo, cover banner, primary and accent colors with WCAG AA luminance contrast auto-correction, venue directions map, and sponsor tiers).
+  - Standalone Quick Matches (`/dashboard/quick`) scored with full BWF/BAI rules without creating a tournament.
+  - Dedicated Cricbuzz-Style Match Center (`/t/[slug]/m/[matchId]`) with real-time scoreboards, tabs (Scorecard, Live, Stats, Commentary), and 1-tap WhatsApp sharing.
+  - SVG Lead Progression "Worm" Chart (`components/tournament/lead-chart.tsx`) with accessible color tokens (`--side-a`, `--side-b`), keyboard navigation, and screen-reader accessible tables.
+  - Deterministic fact-based commentary engine (`lib/commentary.ts`) tracking comeback rallies from 4+ points down, service runs, streaks, interval notices, and game/match points.
+  - Advanced match analytics engine (`lib/match-stats.ts`) computing longest rallies, streaks, service hold rates, and lead changes.
+  - Printable high-resolution tournament QR code posters (`/dashboard/t/[id]/poster`).
+  - Athletic typography system (`app/theme.css` with Barlow and Barlow Condensed).
+  - Multi-court order of play, knockout bracket generator with byes calculation, and players roster table.
 
 ## Document Changelog (v1.2.0 -> v1.3.0)
 - **Umpire role removed from Phase 0:** There is no separate umpire, referee or scorer login, no court PIN and no magic-link/OTP fast-pass. The organizer who owns a tournament is the only person who can change it, including scoring its matches from the organizer console. Delegated scoring may return in a later phase as an explicit, audited feature (see §9).
@@ -242,6 +248,39 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 - **FR-SLG-04 (Slug Change Redirects):** If an organizer updates an existing tournament slug post-publication, the previous slug is archived in a redirect table, performing an automatic `301 Moved Permanently` to prevent broken QR codes or printed posters.
 - **FR-SLG-05 (Dynamic Social Preview Generation):** Every tournament and match page dynamically synthesizes an OpenGraph / Twitter card featuring the tournament banner, logo, current live score, and venue.
 
+### 4.15 Module 15: Cricbuzz-Style Match Center, Statistics & Lead Visualizer
+- **FR-STA-01 (Dedicated Match Center Route):** Every match provides a dedicated public view at `/t/[slug]/m/[matchId]` featuring live scoreboards, game-by-game breakdown, and four modular tabs: Scorecard, Live Feed, Match Statistics, and Commentary.
+- **FR-STA-02 (SVG Lead "Worm" Chart):** Interactive SVG chart showing score lead progression rally-by-rally across each game:
+  - Accessible high-contrast color tokens: `--side-a: #2a78d6` (blue) and `--side-b: #eb6834` (orange).
+  - Hover / focus tooltips displaying exact game score and rally winner at that moment.
+  - Keyboard accessible point-by-point navigation (`ArrowLeft` / `ArrowRight`) with ARIA attributes.
+  - Accessible fallback data table for screen readers and high-contrast accessibility.
+- **FR-STA-03 (Advanced Match Analytics Engine):** Real-time derivation from immutable point log:
+  - Total rallies and longest rally / scoring streaks per player.
+  - Service hold percentage (points won when serving vs returning).
+  - Lead change count and biggest comeback margin (comebacks from 4+ points deficit).
+  - Decider game breakdown with game-point and match-point conversion rates.
+
+### 4.16 Module 16: Deterministic Fact-Based Commentary Engine
+- **FR-COM-01 (Strict Factual Generation):** Real-time text commentary produced purely from verified match events (`point_scored`, `interval`, `game_won`, `match_won`, `walkover`, `retired`). No hallucinated or LLM-fabricated commentary.
+- **FR-COM-02 (Momentum & Milestone Recognition):**
+  - Streaks: "Aman has won 4 points in a row".
+  - Comebacks: "Rahul claws back from 4 points down to level at 16–16".
+  - Game/Match Points: "Match Point for Side A at 20–18".
+  - Saves: "Side B saves Game Point! Now 20–20, deuce!".
+  - Intervals: "Interval reached in Game 1 at 11–9 (Side A leads)".
+- **FR-COM-03 (Undo Rollback Protection):** When an organizer undos a point, undone commentary entries are completely purged from public view; only valid canonical points produce commentary.
+
+### 4.17 Module 17: Standalone Quick Matches (Zero Tournament Overhead)
+- **FR-QCK-01 (Instant Match Creation):** Organizers can launch `/dashboard/quick` to score a casual, club, or practice match instantly without creating an entire tournament.
+- **FR-QCK-02 (Full Rule Engine Support):** Supports Singles/Doubles, BWF 3×21, BAI 3×15, and 1-game quick formats.
+- **FR-QCK-03 (Immediate Live Broadcast):** Creates an unlisted match that opens immediately into the mobile scoring console and provides a shareable public live link (`/t/[slug]/m/[matchId]`).
+
+### 4.18 Module 18: Printable High-Res Stadium QR Posters
+- **FR-POS-01 (Auto-Generated SVG/Canvas Poster):** Dedicated route `/dashboard/t/[id]/poster` generates a print-ready (A4 / Letter) tournament poster.
+- **FR-POS-02 (QR Code Integration):** Embeds high-contrast QR code resolving directly to the public branded microsite `/t/[slug]`.
+- **FR-POS-03 (Live Court & Schedule Summary):** Poster includes tournament logo, venue address, date badge, court list, and "Scan to Follow Live Scores" call to action.
+
 ---
 
 ## 5. Badminton Scoring Engine & India/BWF Standards
@@ -285,39 +324,45 @@ Custom primary and accent colors chosen by organizers are programmatically valid
 
 ```
 +-----------------------------------------------------------------------------------------+
-|                                    REVISED ROADMAP                                      |
+|                                    DELIVERED ROADMAP                                    |
 +-----------------------------------------------------------------------------------------+
-| [P0] CORE MVP (Must Launch Tomorrow — Pilot College Deployment)                         |
-|  - Multi-tenant architecture (Generic platform; no hardcoded college branding)          |
-|  - Independent Organizer Tournament Creation Wizard                                     |
-|  - Custom Tournament Name, Subtitle, Description, and Organizing Entity Name            |
-|  - Custom Tournament Logo and Cover Banner upload                                       |
-|  - Venue Name, Address, and Date configuration                                          |
-|  - Unique shareable tournament slug (e.g., /t/mit-badminton-2026)                        |
-|  - Branded Public Microsite Header with "Powered by ShuttleLive" badge                  |
-|  - Core Tournament Management (Categories, Singles/Doubles entries, Courts)             |
-|  - Scoring Presets (3x21 BWF and 3x15 BAI domestic)                                     |
-|  - Knockout Bracket Generator (Auto-Byes) + Manual Fixture Editor                       |
-|  - 1-Tap Organizer Scoring Board (Points, Service side, Undo, Interval, Confirm)        |
-|  - Realtime Live Scoreboard & Direct WhatsApp Match Share                               |
+| [P0] CORE MVP — COMPLETED [x]                                                           |
+|  [x] Multi-tenant architecture (Generic platform; no hardcoded college branding)        |
+|  [x] Independent Organizer Tournament Creation Wizard                                   |
+|  [x] Custom Tournament Name, Subtitle, Description, and Organizing Entity Name          |
+|  [x] Custom Tournament Logo and Cover Banner upload to Supabase Storage                 |
+|  [x] Venue Name, Address, and Date configuration                                        |
+|  [x] Unique shareable tournament slug (e.g., /t/mit-badminton-2026)                      |
+|  [x] Branded Public Microsite Header with "Powered by ShuttleLive" badge                |
+|  [x] Core Tournament Management (Categories, Singles/Doubles entries, Courts)           |
+|  [x] Scoring Presets (3x21 BWF and 3x15 BAI domestic)                                   |
+|  [x] Knockout Bracket Generator (Auto-Byes) + Manual Fixture Editor                     |
+|  [x] 1-Tap Organizer Scoring Board (Points, Service side, Undo, Interval, Confirm)      |
+|  [x] Realtime Live Scoreboard & Direct WhatsApp Match Share                             |
 +-----------------------------------------------------------------------------------------+
-| [P1] FAST FOLLOW-UP (Multi-Tenant Growth)                                               |
-|  - Organization Workspaces (Shared teams, reusable logos, multiple tournaments)         |
-|  - Appearance Studio (Primary & Accent color picker with contrast validation)           |
-|  - Sponsor & Partner Logo Strip (Title, Associate, Powered-by tiers)                    |
-|  - Modular Section Visibility Toggles (Show/Hide Sponsors, Venue Map, Rules)            |
-|  - Venue Google Maps Embed & Interactive Directions                                     |
-|  - Printable Stadium QR Codes with Custom Tournament Branding                           |
-|  - Tournament Duplication & Seasonal Templates                                          |
-|  - Post-Event Hall of Fame & Champions Podium Showcase                                  |
-|  - Automated Fact-Based Text Commentary & Standalone Quick Matches                      |
+| [P1] ENHANCED CAPABILITIES — COMPLETED [x]                                              |
+|  [x] Organization Workspaces (Owner & Organizer roles, one-time invite tokens)          |
+|  [x] Appearance Studio (Primary & Accent color picker with WCAG contrast validation)    |
+|  [x] Sponsor & Partner Showcase (Title, Associate, Powered-by tiers)                    |
+|  [x] Modular Section Visibility Toggles (Show/Hide Sponsors, Venue Map, Rules)          |
+|  [x] Venue Google Maps Embed & Interactive Directions                                   |
+|  [x] Printable Stadium QR Codes with Custom Tournament Branding (/t/[id]/poster)        |
+|  [x] Dedicated Cricbuzz-Style Match Center (/t/[slug]/m/[matchId])                      |
+|  [x] SVG Lead "Worm" Chart with accessible color tokens (--side-a, --side-b)            |
+|  [x] Advanced Match Analytics (rallies, streaks, hold rates, comebacks)                 |
+|  [x] Automated Fact-Based Text Commentary Engine (lib/commentary.ts)                    |
+|  [x] Standalone Quick Matches (/dashboard/quick)                                        |
+|  [x] Champions Podium Showcase for Completed Tournaments                                |
 +-----------------------------------------------------------------------------------------+
-| [P2] ENTERPRISE & PRO ECOSYSTEM                                                         |
+| [P2] UPCOMING UI/UX ENHANCEMENTS & ADVANCED FEATURES                                    |
+|  - High-Contrast Outdoor Sun Glare Mode (Pure B/W high-contrast umpire score console)   |
+|  - Mobile Haptic Feedback (Web Vibration API on score tap & undo)                       |
+|  - Interactive SVG Knockout Bracket Canvas (Pan/Zoom, live court pulsing badges)        |
+|  - Fullscreen Stadium / Gymnasium Projector Mode (/t/[slug]/projector)                  |
+|  - Live Spectator Counter via Supabase Presence (e.g., "👀 42 watching live")           |
 |  - Custom Domain Mapping (e.g., badminton.mitmuzaffarpur.org)                           |
 |  - White-Labeling (Remove "Powered by ShuttleLive" for enterprise tiers)                |
-|  - Organization-Wide Public Landing Portals (Listing all club tournaments)              |
 |  - Advanced Video Live Stream Overlay Integration                                       |
-|  - Player Registration & Payment Gateways                                               |
 +-----------------------------------------------------------------------------------------+
 ```
 

@@ -125,8 +125,15 @@ export function matchSummary(
   if (!winner) return null;
   const loser: Side = winner === "A" ? "B" : "A";
   if (reason && reason !== "NORMAL") {
-    const why = reason === "WALKOVER" ? "a walkover" : reason === "RETIREMENT" ? `${names[loser]}'s retirement` : "disqualification";
-    return `${names[winner]} won by ${why}.`;
+    const why =
+      reason === "WALKOVER"
+        ? `${names[loser]} conceded a walkover`
+        : reason === "RETIREMENT"
+          ? `${names[loser]} retired from the match`
+          : `${names[loser]} was disqualified`;
+    const lastRally = stats.rallies.at(-1);
+    const scoreDetail = lastRally ? ` in game ${lastRally.game} (score was ${lastRally.a}–${lastRally.b})` : "";
+    return `${names[winner]} was awarded the match after ${why}${scoreDetail}.`;
   }
   const scores = stats.games
     .filter((g) => g.winner)

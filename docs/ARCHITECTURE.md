@@ -1,11 +1,9 @@
-> **v1.3 note:** The umpire/PIN role is removed from Phase 0. The canonical Phase 0 schema and security model are in `supabase/migrations/20261125000003_p0_secure_core.sql`; SQL samples below that differ from it are historical.
-
 # Technical Architecture & System Design
 ## Badminton Live (ShuttleLive) — Multi-Tenant & Supabase-Native Architecture
 
-**Document Version:** 1.3.0  
-**Status:** Draft — Pending Review  
-**Stack:** Next.js (App Router), TypeScript, Tailwind CSS, Supabase Platform (PostgreSQL, Auth, Realtime, Storage, Edge Functions, RPCs)
+**Document Version:** 1.4.0  
+**Status:** Implemented Baseline — Phase 0 & Phase 1 Complete  
+**Stack:** Next.js 16 (App Router + Turbopack), TypeScript, Tailwind CSS, Supabase Platform (PostgreSQL, Auth, Realtime, Storage, Stored RPCs)
 
 ---
 
@@ -466,3 +464,139 @@ WITH CHECK (
     AND auth.role() = 'authenticated'
 );
 ```
+
+---
+
+## 6. Complete PostgreSQL Stored Procedures Suite
+
+To guarantee total data integrity and eliminate split-brain states, all scoring lifecycle transitions are encapsulated inside atomic PostgreSQL stored procedures defined with `SECURITY DEFINER` and empty `search_path`:
+
+```
++-----------------------------------+-----------------------------------------------------------------+
+| Function Signature                | Responsibility & Integrity Enforcements                         |
++-----------------------------------+-----------------------------------------------------------------+
+| `record_point_event(...)`         | Validates caller ownership, expectedVersion, updates game/match |
+|                                   | score, detects interval/game-point/victory, appends to log.      |
++-----------------------------------+-----------------------------------------------------------------+
+| `undo_point_event(...)`           | Rolls back last point atomically, recalculates previous game   |
+|                                   | and match state, handles interval/game-point reversal cleanly.  |
++-----------------------------------+-----------------------------------------------------------------+
+| `start_match(...)`                | Verifies court availability (no clash), sets match to `LIVE`,   |
+|                                   | initializes Game 1, records initial serving side and court end. |
++-----------------------------------+-----------------------------------------------------------------+
+| `start_next_game(...)`            | Transitions from interval/intermission into next game (e.g. G2, |
+|                                   | decider G3), alternates starting server per BWF rules.          |
++-----------------------------------+-----------------------------------------------------------------+
+| `finalize_match(...)`             | Confirms provisional `MATCH_WON_PENDING` into `COMPLETED`,      |
+|                                   | sets winner, updates tournament bracket progression.            |
++-----------------------------------+-----------------------------------------------------------------+
+| `terminate_match(...)`            | Handles Walkover (`WALKOVER`), Retirement (`RETIRED`), or       |
+|                                   | Disqualification (`DISQUALIFIED`) without fabricated scores.    |
++-----------------------------------+-----------------------------------------------------------------+
+```
+
+---
+
+## 7. Organization & Workspaces Data Model
+
+```sql
+-- Organizations (Tenants)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    logo_url TEXT,
+    primary_color VARCHAR(10),
+    created_by UUID REFERENCES auth.users(id) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Organization Memberships & Permissions
+CREATE TYPE org_role AS ENUM ('OWNER', 'ORGANIZER');
+
+CREATE TABLE organization_members (
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    role org_role NOT NULL DEFAULT 'ORGANIZER',
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (organization_id, user_id)
+);
+
+-- One-Time Invite Links
+CREATE TABLE organization_invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    role org_role NOT NULL DEFAULT 'ORGANIZER',
+    token VARCHAR(64) UNIQUE NOT NULL,
+    invited_by UUID REFERENCES auth.users(id) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+## 8. Commentary & Match Statistics Engine
+
+### 8.1 Deterministic Commentary Generator (`lib/commentary.ts`)
+Rather than risking hallucinations or LLM latency, text commentary is synthesized deterministically from the validated sequence of match events:
+
+```typescript
+export interface CommentaryItem {
+  id: string;
+  gameNumber: number;
+  rallyNumber: number;
+  scoreA: number;
+  scoreB: number;
+  side: "A" | "B";
+  text: string;
+  type: "point" | "streak" | "interval" | "game_point" | "match_point" | "save" | "comeback" | "end_change" | "result";
+  timestamp: string;
+}
+```
+
+- **Comeback Detection:** Triggered when a player who was trailing by 4 or more points within the current game levels the score or takes the lead (e.g., *"Rahul claws back from 4 points down to level at 16–16"*).
+- **Streak Detection:** Triggered on consecutive unanswered scoring runs of 3, 4, 5+ points.
+- **Milestone Detection:** Dynamically calculates Game Point and Match Point states based on current rules snapshot (`points_to_win`, `win_by`, `max_points`).
+- **Undone Points Safety:** Commentary is generated exclusively from the active chronological sequence; points revoked via `undo_point_event()` are discarded automatically.
+
+### 8.2 Match Statistics Engine (`lib/match-stats.ts`)
+Derives comprehensive badminton analytics directly from the append-only event stream:
+- **Total Rallies:** Count of all played points in the match.
+- **Longest Scoring Run:** Maximum consecutive points won by Side A vs Side B.
+- **Service Hold Rate:** Percentage of points won when holding service vs receiving service.
+- **Lead Changes:** Frequency of lead alternation per game.
+- **Comeback Margins:** Maximum deficit overcome to win a game or match.
+
+---
+
+## 9. SVG Lead "Worm" Chart Geometry (`components/tournament/lead-chart.tsx`)
+
+The lead chart visualizes point-by-point score progression across each game.
+
+### 9.1 Mathematical Coordinate Mapping
+- **X-Axis:** Scaled by total rallies played in the game: $X_i = \text{paddingLeft} + \frac{i}{N} \times \text{plotWidth}$.
+- **Y-Axis:** Scaled by the relative score differential $(\text{Score}_A - \text{Score}_B)$:
+  - Center Baseline ($Y=0$): Score is level ($0$ differential).
+  - Positive Region (Top): Side A leads.
+  - Negative Region (Bottom): Side B leads.
+  - $Y_i = \text{centerY} - \left(\frac{\text{lead}_i}{\max(|\text{lead}|, 5)}\right) \times \text{halfHeight}$.
+
+### 9.2 High-Contrast & Accessible Color Tokens
+To avoid red/green color-blindness collisions, the chart employs high-contrast blue and orange tokens defined in CSS:
+- **Side A Token:** `var(--side-a, #2a78d6)` (Cobalt Blue)
+- **Side B Token:** `var(--side-b, #eb6834)` (Vibrant Orange)
+- **Accessibility:** Fully accessible fallback table rendered for screen readers with `sr-only` or toggleable visual table.
+
+---
+
+## 10. Athletic Scoreboard Typography (`app/theme.css`)
+
+For immediate legibility under bright gymnasium floodlights and mobile glare:
+- **Display Numerals:** `Barlow Condensed` (`font-stretch: 85%`) with tabular figures (`font-variant-numeric: tabular-nums`).
+- **Team & Player Headers:** `Barlow Semi-Condensed` (600/700 weight).
+- **Body & Metadata:** System UI font stack (`Inter`, `system-ui`, `-apple-system`).
+- **Color Validation:** Real-time luminance calculation prevents low-contrast color selections on branded tournament headers.
+

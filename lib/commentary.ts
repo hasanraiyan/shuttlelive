@@ -78,7 +78,7 @@ export function buildCommentary(events: CommentaryEvent[], names: Record<Side, s
       const loser = names[other(e.side)];
       const why =
         e.reason === "WALKOVER"
-          ? `${loser} didn't play (walkover)`
+          ? `${loser} conceded a walkover`
           : e.reason === "RETIREMENT"
             ? `${loser} retired`
             : `${loser} was disqualified`;
@@ -129,43 +129,59 @@ export function buildCommentary(events: CommentaryEvent[], names: Record<Side, s
       continue;
     }
 
-    // The rally itself, described by what it did to the score.
-    if (a + b === 1) {
-      push(`${names[X]} opens the scoring.`, "rally", score, g);
-    } else if (lead === 0) {
-      push(`${names[X]} levels at ${mine} all.`, "swing", score, g);
-    } else if (lead === 1 && before === 0) {
-      push(hasLed[X] ? `${names[X]} is back in front, ${own}.` : `${names[X]} takes the lead, ${own}.`, "swing", score, g);
-    } else if (lead > 1) {
-      push(`${names[X]} extends the lead to ${own}.`, "rally", score, g);
-    } else if (lead < 0) {
-      push(`${names[X]} pulls one back, ${own}.`, "rally", score, g);
-    } else {
-      push(`${names[X]} wins the rally, ${own}.`, "rally", score, g);
-    }
-    if (lead > 0) hasLed[X] = true;
-
-    // Comeback: just went ahead after being 4 or more points down in this game.
-    if (lead === 1 && before === 0 && worst[X].by >= 4) {
-      push(`Comeback. ${names[X]} was ${worst[X].score} down and now leads ${own}.`, "moment", score, g, "c");
-    }
+    // Single authoritative commentary entry per rally (prevents duplicate rows with identical scores)
+    let text: string;
+    let tone: Line["tone"] = "rally";
 
     if (oppHadPoint) {
-      push(`${names[X]} saves a ${oppMatchPoint ? "match" : "game"} point.`, "moment", score, g, "s");
-    }
-    if (a === b && a >= points - 1) {
-      push(`${a} all. Two clear points needed.`, "moment", score, g, "d");
+      text = `${names[X]} saves a ${oppMatchPoint ? "match" : "game"} point to make it ${own}.`;
+      tone = "moment";
+    } else if (a === b && a >= points - 1) {
+      text = `${names[X]} levels at ${mine} all. Deuce — two clear points needed.`;
+      tone = "moment";
+    } else if (lead === 1 && before === 0 && worst[X].by >= 4) {
+      text = `Comeback! ${names[X]} was ${worst[X].score} down and now leads ${own}.`;
+      tone = "moment";
     } else if (atGamePoint(mine, theirs) && mine > theirs) {
       const matchPoint = wonBefore[X] + 1 >= toWinMatch;
-      push(`${matchPoint ? "Match" : "Game"} point, ${names[X]}.`, "moment", score, g, "g");
+      const streakSuffix = streak >= 4 ? ` (${streak} points in a row)` : "";
+      text = `${matchPoint ? "Match" : "Game"} point for ${names[X]} at ${own}${streakSuffix}.`;
+      tone = "moment";
+    } else if (mine === interval_at && theirs < interval_at) {
+      const deciding = best_of > 1 && g === best_of;
+      text = `Interval reached. ${names[X]} leads ${own}${deciding ? " — players change ends" : ""}.`;
+      tone = "moment";
+    } else if (streak >= 4) {
+      if (lead > 0) {
+        text = `${names[X]} extends the lead to ${own} (${streak} points in a row).`;
+      } else if (lead === 0) {
+        text = `${names[X]} levels at ${mine} all (${streak} points in a row).`;
+      } else {
+        text = `${names[X]} pulls one back to ${own} (${streak} points in a row).`;
+      }
+      tone = "moment";
+    } else if (a + b === 1) {
+      text = `${names[X]} opens the scoring.`;
+      tone = "rally";
+    } else if (lead === 0) {
+      text = `${names[X]} levels at ${mine} all.`;
+      tone = "swing";
+    } else if (lead === 1 && before === 0) {
+      text = hasLed[X] ? `${names[X]} is back in front, ${own}.` : `${names[X]} takes the lead, ${own}.`;
+      tone = "swing";
+    } else if (lead > 1) {
+      text = `${names[X]} extends the lead to ${own}.`;
+      tone = "rally";
+    } else if (lead < 0) {
+      text = `${names[X]} pulls one back, ${own}.`;
+      tone = "rally";
+    } else {
+      text = `${names[X]} wins the rally, ${own}.`;
+      tone = "rally";
     }
 
-    if (mine === interval_at && theirs < interval_at) {
-      const deciding = best_of > 1 && g === best_of;
-      push(`Interval. ${names[X]} leads ${own}${deciding ? ". Players change ends" : ""}.`, "moment", score, g, "i");
-    } else if (streak === 4 || (streak > 4 && streak % 2 === 0)) {
-      push(`${streak} points in a row for ${names[X]}.`, "moment", score, g, "r");
-    }
+    if (lead > 0) hasLed[X] = true;
+    push(text, tone, score, g);
   }
 
   return lines.reverse();
