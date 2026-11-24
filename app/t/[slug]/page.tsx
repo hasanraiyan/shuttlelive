@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, permanentRedirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Logo } from "@/components/layout/app-icon";
 import { LiveSections } from "@/components/tournament/live-sections";
 import { ShareLinks } from "@/components/tournament/share-links";
-import { getDraftForOwner, getPublicBundle, type Bundle } from "@/lib/data";
+import { VenueMap } from "@/components/tournament/venue-map";
+import { brandVars } from "@/lib/color";
+import { getPublicBundle, type Bundle } from "@/lib/data";
+import { resolvePublic } from "@/lib/public";
 import { formatDateRange, siteUrl } from "@/lib/format";
 import { mediaUrl } from "@/lib/supabase/env";
 import { cn } from "@/lib/utils";
@@ -39,34 +42,33 @@ export default function PublicTournamentPage({ params }: PageProps<"/t/[slug]">)
 
 async function Content({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  // Shared, cached copy for everyone (no cookies involved).
-  const res = await getPublicBundle(slug);
-  if (res.kind === "redirect") permanentRedirect(`/t/${res.slug}`);
-  if (res.kind === "ok") return <TournamentView bundle={res.bundle} draft={false} />;
-
-  // Not public: it may be a draft the signed-in owner is previewing.
-  const draft = await getDraftForOwner(slug);
-  if (!draft) notFound();
-  return <TournamentView bundle={draft} draft />;
+  const { bundle, draft } = await resolvePublic(slug);
+  // A quick match has one match: go straight to its scoreboard and commentary.
+  if (bundle.tournament.kind === "QUICK" && bundle.matches[0]) {
+    redirect(`/t/${bundle.tournament.slug}/m/${bundle.matches[0].id}`);
+  }
+  return <TournamentView bundle={bundle} draft={draft} />;
 }
 
 function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }) {
   const t = b.tournament;
   const banner = mediaUrl(t.banner_path);
-  const logo = mediaUrl(t.logo_path);
+  const logo = mediaUrl(t.logo_path) ?? mediaUrl(b.organization?.logo_path);
+  const host = t.host_name ?? b.organization?.name ?? null;
+  const banded = Boolean(t.brand_accent) && !banner;
 
   return (
-    <>
+    <div className="flex flex-1 flex-col" style={brandVars(t.brand_primary, t.brand_accent)}>
       {draft && (
         <p className="bg-warn/20 px-4 py-2 text-center text-sm">
-          This is a draft. Only you can see it.{" "}
+          This is a draft. Only you and your team can see it.{" "}
           <Link href={`/dashboard/t/${t.id}`} className="font-semibold underline underline-offset-4">
             Back to the dashboard
           </Link>
         </p>
       )}
 
-      <header className="border-b border-line">
+      <header className={cn("border-b border-line", banded && "bg-[var(--band)] text-[var(--on-band)]")}>
         {banner && (
           // eslint-disable-next-line @next/next/no-img-element -- organizer upload from storage
           <img src={banner} alt="" className="aspect-[3/1] max-h-80 w-full object-cover" />
@@ -81,9 +83,9 @@ function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }
             />
           )}
           <div className="min-w-0 flex-1">
-            {t.host_name && <p className="text-sm text-ink-soft">{t.host_name}</p>}
+            {host && <p className={cn("text-sm", banded ? "opacity-80" : "text-ink-soft")}>{host}</p>}
             <h1 className="font-display text-[clamp(2.5rem,6vw,4.5rem)]">{t.name}</h1>
-            {t.subtitle && <p className="mt-1 text-lg text-ink-soft">{t.subtitle}</p>}
+            {t.subtitle && <p className={cn("mt-1 text-lg", banded ? "opacity-85" : "text-ink-soft")}>{t.subtitle}</p>}
             <p className="mt-3 text-sm">
               {formatDateRange(t.start_date, t.end_date)}
               {t.venue_name && (
@@ -92,19 +94,7 @@ function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }
                   {t.venue_address ? `, ${t.venue_address}` : ""}
                 </>
               )}
-              {t.venue_map_url && (
-                <>
-                  {" "}
-                  <a
-                    href={t.venue_map_url}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    className="font-semibold text-court underline underline-offset-4"
-                  >
-                    Directions
-                  </a>
-                </>
-              )}
+
             </p>
           </div>
         </div>
@@ -114,6 +104,7 @@ function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }
         <LiveSections
           tournamentId={t.id}
           completed={t.status === "COMPLETED"}
+          slug={t.slug}
           initialMatches={b.matches}
           entries={b.entries}
           courts={b.courts}
@@ -127,6 +118,8 @@ function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }
           </section>
         )}
 
+        <VenueMap name={t.venue_name} address={t.venue_address} mapUrl={t.venue_map_url} />
+
         {!draft && <ShareLinks url={siteUrl(`/t/${t.slug}`)} title={t.name} />}
       </main>
 
@@ -136,6 +129,6 @@ function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }
           <Logo />
         </div>
       </footer>
-    </>
+    </div>
   );
 }

@@ -7,6 +7,8 @@ import type { MatchWithGames } from "@/lib/types";
 
 type Ctx = {
   bundle: Bundle;
+  /** Organizations the user belongs to (for moving a tournament between them). */
+  myOrgs: { id: string; name: string }[];
   /** Apply a confirmed match state (from the scoring screen) without reloading. */
   patchMatch: (m: MatchWithGames) => void;
   live: boolean;
@@ -20,7 +22,15 @@ const TournamentContext = React.createContext<Ctx | null>(null);
  * the scoring screen patch matches in place. After a server action the layout
  * re-renders with fresh data, which replaces this state.
  */
-export function TournamentProvider({ initial, children }: { initial: Bundle; children: React.ReactNode }) {
+export function TournamentProvider({
+  initial,
+  myOrgs = [],
+  children,
+}: {
+  initial: Bundle;
+  myOrgs?: { id: string; name: string }[];
+  children: React.ReactNode;
+}) {
   const [source, setSource] = React.useState(initial);
   const [matches, setMatches] = React.useState(initial.matches);
 
@@ -37,8 +47,8 @@ export function TournamentProvider({ initial, children }: { initial: Bundle; chi
   }, []);
 
   const value = React.useMemo<Ctx>(
-    () => ({ bundle: { ...source, matches }, patchMatch, live }),
-    [source, matches, patchMatch, live]
+    () => ({ bundle: { ...source, matches }, myOrgs, patchMatch, live }),
+    [source, matches, myOrgs, patchMatch, live]
   );
   return <TournamentContext.Provider value={value}>{children}</TournamentContext.Provider>;
 }

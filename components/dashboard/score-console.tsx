@@ -352,7 +352,7 @@ export function ScoreConsole({ tid, initial, external, onMatch, names, context, 
         <span className="sr-only">
           {names.A} {m.score_a}, {names.B} {m.score_b}.
         </span>
-        {call && <span className={live ? "text-warn" : "text-ink"}>{call}</span>}
+        {call && <span className={live ? "rounded-md bg-warn/20 px-2 py-0.5 text-ink" : "text-ink"}>{call}</span>}
         {finished && (
           <span>
             {m.winner_side ? `${names[m.winner_side]} won` : "Match over"}

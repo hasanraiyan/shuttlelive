@@ -1,13 +1,21 @@
 # Software Requirements Specification (SRS)
 ## Badminton Live (ShuttleLive) — Multi-Tenant Tournament Management & Live Scoring Platform
 
-**Document Version:** 1.3.0  
-**Status:** Draft — Phase 0 baseline (single organizer role)  
+**Document Version:** 1.4.0  
+**Status:** Draft — Phase 0 complete, Phase 1 in progress  
 **Last Updated:** November 2026  
 **Product Vision:** *"Create. Compete. Follow Live."*  
 **Platform Architecture:** Multi-Tenant Tournament Operating System with Custom Branded Microsites
 
 ---
+
+## Document Changelog (v1.3.0 -> v1.4.0)
+- **Phase 1 items delivered:** organization workspaces (§3.1), appearance studio (FR-BRD-05), venue map embed and directions (FR-BRD-04), printable QR poster, champions podium (FR-MIC-05), fact-based live commentary and standalone quick matches.
+- **Roles (organizations):** `OWNER` manages members, invites, the organization, and can delete its tournaments. `ORGANIZER` runs the organization's tournaments (players, draws, scoring, settings) but cannot invite, change roles or delete tournaments. A tournament's creator keeps full control of it. An organization always keeps at least one owner.
+- **Invites:** one-time links tied to an email address, valid for 7 days, revocable. Accepting requires signing in with the invited email. Links are shared by the owner (copy or WhatsApp); no email is sent by the platform.
+- **Commentary:** generated only from recorded facts (rallies, streaks, intervals, deuce, game and match points, saves, game and match results, walkovers, retirements, disqualifications). Undone points never appear. The raw match log stays private; the public receives a filtered feed for published tournaments only.
+- **Quick matches:** a single match scored without creating a tournament. Published as unlisted, opens straight to its live scoreboard and commentary.
+- **Tests:** `supabase/tests/p1_features_test.sql` covers these rules alongside the Phase 0 suite.
 
 ## Document Changelog (v1.2.0 -> v1.3.0)
 - **Umpire role removed from Phase 0:** There is no separate umpire, referee or scorer login, no court PIN and no magic-link/OTP fast-pass. The organizer who owns a tournament is the only person who can change it, including scoring its matches from the organizer console. Delegated scoring may return in a later phase as an explicit, audited feature (see §9).

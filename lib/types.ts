@@ -32,8 +32,50 @@ export type Tournament = {
   visibility: Visibility;
   logo_path: string | null;
   banner_path: string | null;
+  kind: "TOURNAMENT" | "QUICK";
+  brand_primary: string | null;
+  brand_accent: string | null;
+  organization_id: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type OrgRole = "OWNER" | "ORGANIZER";
+
+export type Organization = {
+  id: string;
+  name: string;
+  logo_path: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type OrgMember = { organization_id: string; user_id: string; role: OrgRole; email: string | null; created_at: string };
+
+export type OrgInvite = {
+  id: string;
+  organization_id: string;
+  email: string;
+  role: OrgRole;
+  token: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+};
+
+/** One row of the public commentary feed (see match_commentary()). */
+export type CommentaryEvent = {
+  seq: number;
+  command: "START" | "POINT" | "NEXT_GAME" | "CONFIRM" | "TERMINATE";
+  side: Side | null;
+  reason: string | null;
+  at: string;
+  game: number;
+  a: number;
+  b: number;
+  ga: number;
+  gb: number;
+  status: MatchStatus;
 };
 
 export type Court = { id: string; tournament_id: string; name: string; sort_order: number };

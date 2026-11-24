@@ -192,7 +192,7 @@ export function CourtScoreboard() {
 
       <div className="mt-4 flex items-start justify-between gap-4 border-t border-line pt-4">
         <div className="min-w-0">
-          <p aria-live="polite" className={cn("text-sm font-semibold", urgent ? "text-warn" : "text-ink")}>
+          <p aria-live="polite" className={cn("w-fit text-sm font-semibold text-ink", urgent && "rounded-md bg-warn/20 px-2 py-0.5")}>
             <span className="sr-only">
               Score {PLAYERS.a.short} {state.score.a}, {PLAYERS.b.short} {state.score.b}.{" "}
             </span>
@@ -210,7 +210,7 @@ export function CourtScoreboard() {
           type="button"
           onClick={undo}
           disabled={history.length <= 1}
-          className="shrink-0 rounded-md border border-line px-3 py-2 text-sm font-medium text-ink hover:border-warn hover:text-warn disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink"
+          className="shrink-0 rounded-md border border-line px-3 py-2 text-sm font-medium text-ink hover:border-warn disabled:opacity-40 disabled:hover:border-line"
         >
           Undo
         </button>

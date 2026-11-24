@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { cacheLife, cacheTag } from "next/cache";
 import { ImageResponse } from "next/og";
+import { readableOnWhite, textOn } from "@/lib/color";
 import { formatDateRange } from "@/lib/format";
 import { isActive } from "@/lib/scoring";
 import { createPublicClient } from "@/lib/supabase/server";
@@ -37,6 +38,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const { t, live } = await loadCard(slug);
 
   const tournament = t as Tournament | null;
+  // Event colour from the appearance studio, made readable; otherwise the brand green.
+  const bg = tournament?.brand_primary ? readableOnWhite(tournament.brand_primary) : c.court;
+  const fg = tournament?.brand_primary ? (textOn(bg) === "#ffffff" ? c.paper : c.ink) : c.paper;
   const title = tournament?.name ?? "ShuttleLive";
   const sub = tournament
     ? `${formatDateRange(tournament.start_date, tournament.end_date)}${tournament.venue_name ? `, ${tournament.venue_name}` : ""}`
@@ -51,8 +55,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: c.court,
-          color: c.paper,
+          background: bg,
+          color: fg,
           padding: 64,
           fontFamily: "sans-serif",
         }}
@@ -76,7 +80,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", fontSize: 34, maxWidth: 760 }}>
-              <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: c.court, fontWeight: 700 }}>
+              <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: bg, fontWeight: 700 }}>
                 <div style={{ width: 14, height: 14, borderRadius: 7, background: c.emerald, marginRight: 10 }} />
                 Live now
               </div>

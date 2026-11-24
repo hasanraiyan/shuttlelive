@@ -107,6 +107,17 @@ export function explainDbError(message: string | undefined): string {
     LIMIT_CATEGORIES: "A tournament can have up to 20 categories.",
     LIMIT_ENTRIES: "A category can have up to 128 entries.",
     LIMIT_MATCHES: "A tournament can have up to 2,000 matches.",
+    LIMIT_QUICK_MATCHES: "You've reached the limit of 200 quick matches. Delete old ones to make more.",
+    LIMIT_ORGANIZATIONS: "You can create up to 10 organizations.",
+    LIMIT_INVITES: "This organization has 50 pending invites. Revoke some first.",
+    LIMIT_MEMBERS: "An organization can have up to 50 members.",
+    LAST_OWNER: "An organization needs at least one owner. Make someone else an owner first.",
+    NOT_ORG_MEMBER: "You can only add tournaments to organizations you belong to.",
+    INVITE_NOT_FOUND: "This invite link isn't valid.",
+    INVITE_USED: "This invite has already been used.",
+    INVITE_EXPIRED: "This invite has expired. Ask for a new one.",
+    INVITE_WRONG_EMAIL: "This invite is for a different email address. Sign in with the invited email.",
+    KIND_IMMUTABLE: "A quick match can't be turned into a tournament.",
   };
   if (map[code]) return map[code];
   if (/duplicate key.*slug/i.test(message ?? "")) return "That web address is already in use.";

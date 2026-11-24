@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safePath } from "@/lib/safe-redirect";
 import { SUPABASE_KEY, SUPABASE_URL } from "./env";
 
 /** Refreshes the auth session cookie and keeps signed-out users out of /dashboard. */
@@ -30,10 +31,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   if (user && (path === "/sign-in" || path === "/sign-up")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
+    // Already signed in: go where the link wanted (same-site paths only).
+    const target = safePath(request.nextUrl.searchParams.get("redirect"));
+    return NextResponse.redirect(new URL(target, request.url));
   }
   return response;
 }

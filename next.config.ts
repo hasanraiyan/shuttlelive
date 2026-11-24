@@ -11,6 +11,8 @@ const csp = [
   `img-src 'self' data: blob: ${supabaseOrigin}`,
   "font-src 'self' data:",
   `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`,
+  // Venue maps on public pages (Google Maps embed, no API key).
+  "frame-src https://www.google.com https://maps.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

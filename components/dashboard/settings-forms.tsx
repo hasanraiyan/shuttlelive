@@ -6,12 +6,15 @@ import { Button, Input, Label, Notice, Section, Select, Textarea } from "@/compo
 import { addCourt, deleteCourt } from "@/lib/actions/setup";
 import {
   deleteTournament,
+  setBrandColors,
   setTournamentImage,
+  setTournamentOrganization,
   updateSlug,
   updateTournamentDetails,
 } from "@/lib/actions/tournaments";
 import { createClient } from "@/lib/supabase/client";
 import { MEDIA_BUCKET, mediaUrl } from "@/lib/supabase/env";
+import { HEX, brandVars, readableOnWhite } from "@/lib/color";
 import { ACCEPTED, prepareImage } from "@/lib/image";
 import type { Court, Tournament } from "@/lib/types";
 
@@ -263,6 +266,194 @@ export function DangerZone({ t }: { t: Tournament }) {
           </>
         )}
       </ActionForm>
+    </Section>
+  );
+}
+
+/** Reads a brand colour from app/theme.css (the picker needs a concrete value). */
+function useThemeColour(name: string) {
+  const [v, setV] = React.useState("#000000");
+  React.useEffect(() => {
+    const c = getComputedStyle(document.documentElement).getPropertyValue(name).trim().toLowerCase();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- CSS variables are only readable after mount
+    if (HEX.test(c)) setV(c);
+  }, [name]);
+  return v;
+}
+
+/** Appearance studio: event colours with a live preview and an automatic readability check. */
+export function AppearanceForm({ t }: { t: Tournament }) {
+  const [primary, setPrimary] = React.useState<string | null>(t.brand_primary);
+  const [accent, setAccent] = React.useState<string | null>(t.brand_accent);
+  const { pending, error, run } = useAction();
+  const [saved, setSaved] = React.useState(false);
+  const defaultPrimary = useThemeColour("--sl-court");
+  const defaultAccent = useThemeColour("--sl-ink");
+
+  const used = primary ? readableOnWhite(primary) : null;
+  const adjusted = primary && used !== primary;
+  const vars = brandVars(primary, accent);
+  const dirty = primary !== t.brand_primary || accent !== t.brand_accent;
+
+  return (
+    <Section
+      title="Colours"
+      description="Give the public page, poster and share card your event's colours. Colours that are too light are darkened automatically so text stays readable."
+    >
+      <div className="grid max-w-3xl gap-6 md:grid-cols-[1fr_18rem]">
+        <div className="grid gap-5">
+          <ColourField
+            id="brand-primary"
+            label="Event colour"
+            hint="buttons, links, winners"
+            value={primary}
+            fallback={defaultPrimary}
+            onChange={setPrimary}
+          />
+          {adjusted && (
+            <p className="text-sm text-ink-soft">
+              Shown as <span className="font-semibold text-ink">{used}</span> so text on white stays readable.
+            </p>
+          )}
+          <ColourField
+            id="brand-accent"
+            label="Header colour"
+            hint="used when there's no banner"
+            value={accent}
+            fallback={defaultAccent}
+            onChange={setAccent}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              disabled={pending || !dirty}
+              onClick={() =>
+                run(async () => {
+                  const res = await setBrandColors(t.id, primary, accent);
+                  setSaved(res.ok);
+                  return res;
+                })
+              }
+            >
+              {pending ? "Saving…" : "Save colours"}
+            </Button>
+            {saved && !dirty && <span className="text-sm text-ink-soft">Saved</span>}
+          </div>
+          {error && <Notice tone="error">{error}</Notice>}
+        </div>
+
+        {/* Live preview */}
+        <div style={vars} aria-label="Preview" className="overflow-hidden rounded-lg border border-line text-sm">
+          <div className={accent ? "bg-[var(--band)] px-4 py-4 text-[var(--on-band)]" : "border-b border-line px-4 py-4"}>
+            <p className={accent ? "opacity-80" : "text-ink-soft"}>{t.host_name ?? "Hosted by you"}</p>
+            <p className="font-display text-2xl">{t.name}</p>
+          </div>
+          <div className="space-y-3 p-4">
+            <p className="rounded-md bg-court px-3 py-2 font-semibold text-court-line">Men&apos;s singles winner</p>
+            <p>
+              <span className="font-semibold text-court underline underline-offset-4">Commentary</span>
+            </p>
+            <span className="inline-flex h-9 items-center rounded-md bg-court px-3 font-semibold text-court-line">Get directions</span>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function ColourField({
+  id,
+  label,
+  hint,
+  value,
+  fallback,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  value: string | null;
+  fallback: string;
+  onChange: (v: string | null) => void;
+}) {
+  const [text, setText] = React.useState(value ?? "");
+  return (
+    <div>
+      <Label htmlFor={id} hint={hint}>
+        {label}
+      </Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          aria-label={`${label} picker`}
+          value={value ?? fallback}
+          onChange={(e) => {
+            onChange(e.target.value.toLowerCase());
+            setText(e.target.value.toLowerCase());
+          }}
+          className="h-10 w-12 cursor-pointer rounded-md border border-line bg-surface p-1"
+        />
+        <Input
+          id={id}
+          value={text}
+          placeholder="Default"
+          maxLength={7}
+          className="w-28 font-mono"
+          onChange={(e) => {
+            const v = e.target.value.trim().toLowerCase();
+            setText(v);
+            if (HEX.test(v)) onChange(v);
+            if (v === "") onChange(null);
+          }}
+        />
+        {value && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              onChange(null);
+              setText("");
+            }}
+          >
+            Use default
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Which organization a tournament belongs to. */
+export function OrganizationForm({ t, orgs }: { t: Tournament; orgs: { id: string; name: string }[] }) {
+  const { pending, error, run } = useAction();
+  if (!orgs.length && !t.organization_id) return null;
+  return (
+    <Section
+      title="Organization"
+      description="Tournaments in an organization can be run by everyone in it. Only the creator or an organization owner can delete them."
+    >
+      <div className="flex max-w-md flex-wrap items-end gap-3">
+        <div className="flex-1">
+          <Label htmlFor="org">Belongs to</Label>
+          <Select
+            id="org"
+            disabled={pending}
+            value={t.organization_id ?? ""}
+            onChange={(e) => run(() => setTournamentOrganization(t.id, e.target.value || null))}
+          >
+            <option value="">Personal</option>
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+      {error && (
+        <div className="mt-3">
+          <Notice tone="error">{error}</Notice>
+        </div>
+      )}
     </Section>
   );
 }

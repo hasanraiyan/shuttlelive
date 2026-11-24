@@ -5,7 +5,15 @@ import { DrawsManager } from "@/components/dashboard/draws-manager";
 import { MatchesBoard } from "@/components/dashboard/matches-board";
 import { PlayersManager } from "@/components/dashboard/players-manager";
 import { ScoreConsole } from "@/components/dashboard/score-console";
-import { CourtsForm, DangerZone, DetailsForm, ImagesForm, SlugForm } from "@/components/dashboard/settings-forms";
+import {
+  AppearanceForm,
+  CourtsForm,
+  DangerZone,
+  DetailsForm,
+  ImagesForm,
+  OrganizationForm,
+  SlugForm,
+} from "@/components/dashboard/settings-forms";
 import { useTournament } from "@/components/dashboard/tournament-context";
 import { ShareLinks } from "@/components/tournament/share-links";
 import { siteUrl } from "@/lib/format";
@@ -56,12 +64,14 @@ export function DrawsTab() {
 }
 
 export function SettingsTab() {
-  const { bundle: b } = useTournament();
+  const { bundle: b, myOrgs } = useTournament();
   const t = b.tournament;
   return (
     <div className="space-y-12">
       <DetailsForm key={t.updated_at} t={t} />
       <ImagesForm t={t} />
+      <AppearanceForm key={`${t.brand_primary}-${t.brand_accent}`} t={t} />
+      <OrganizationForm t={t} orgs={myOrgs} />
       <CourtsForm tid={t.id} courts={b.courts} />
       <SlugForm key={t.slug} t={t} />
       <DangerZone t={t} />

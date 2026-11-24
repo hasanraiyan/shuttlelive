@@ -6,7 +6,7 @@ import { Button, Input, Label, Select } from "@/components/app/ui";
 import { createTournament } from "@/lib/actions/tournaments";
 import { slugify } from "@/lib/validation";
 
-export function NewTournamentForm() {
+export function NewTournamentForm({ orgs = [] }: { orgs?: { id: string; name: string }[] }) {
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [slugEdited, setSlugEdited] = React.useState(false);
@@ -80,6 +80,20 @@ export function NewTournamentForm() {
               <Input id="courts" name="courts" type="number" min={1} max={30} defaultValue={2} required />
             </div>
           </div>
+
+          {orgs.length > 0 && (
+            <div>
+              <Label htmlFor="organization_id">Belongs to</Label>
+              <Select id="organization_id" name="organization_id" defaultValue="">
+                <option value="">Personal</option>
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="visibility">Who can find it</Label>

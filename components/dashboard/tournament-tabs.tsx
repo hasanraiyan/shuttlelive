@@ -11,6 +11,7 @@ export function TournamentTabs({ id }: { id: string }) {
     { href: base, label: "Matches" },
     { href: `${base}/players`, label: "Players" },
     { href: `${base}/draws`, label: "Categories and draws" },
+    { href: `${base}/poster`, label: "QR poster" },
     { href: `${base}/settings`, label: "Settings" },
   ];
   return (

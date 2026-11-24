@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Field, GoogleButton, Notice, OrDivider, PrimaryButton } from "@/components/auth/form";
+import { safePath } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/client";
 
 const CONFIG_ERROR = "Sign-up isn't connected yet. Add your Supabase URL and key to .env.local, then restart the dev server.";
@@ -21,6 +22,8 @@ export default function SignUpPage() {
   const [success, setSuccess] = React.useState(false);
 
   const supabase = createClient();
+  // Where to land after confirming (e.g. back to an invite link). Same-site paths only.
+  const after = () => safePath(new URLSearchParams(window.location.search).get("redirect"));
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +35,7 @@ export default function SignUpPage() {
         password,
         options: {
           data: { full_name: name, organization_name: organization },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(after())}`,
         },
       });
       if (signUpError) {
@@ -43,7 +46,7 @@ export default function SignUpPage() {
         );
         return;
       }
-      if (data.session) router.push("/dashboard");
+      if (data.session) router.push(after());
       else setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't create the account. Try again.");
@@ -58,7 +61,7 @@ export default function SignUpPage() {
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/dashboard` },
+        options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(after())}` },
       });
       if (oauthError) setError(oauthError.message);
     } catch (err: unknown) {

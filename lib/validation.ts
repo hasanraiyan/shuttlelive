@@ -55,6 +55,11 @@ export const createTournamentSchema = tournamentDetailsSchema.and(
   z.object({
     slug: slugSchema,
     courts: z.coerce.number().int().min(1, "Add at least one court.").max(30, "Up to 30 courts."),
+    organization_id: z
+      .string()
+      .optional()
+      .transform((v) => (v ? v : null))
+      .refine((v) => v === null || /^[0-9a-f-]{36}$/.test(v), "Choose an organization."),
   })
 );
 

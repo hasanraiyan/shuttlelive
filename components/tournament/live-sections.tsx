@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocalTime } from "@/components/app/local-time";
 import { Bracket } from "@/components/tournament/bracket";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   tournamentId: string;
   completed: boolean;
+  slug: string;
   initialMatches: MatchWithGames[];
   entries: Entry[];
   courts: Court[];
@@ -24,7 +26,7 @@ type Props = {
  * cached server copy and applies Realtime row changes in the browser, so a
  * point scored costs each viewer one small message, not a page reload.
  */
-export function LiveSections({ tournamentId, completed, initialMatches, entries, courts, categories }: Props) {
+export function LiveSections({ tournamentId, completed, slug, initialMatches, entries, courts, categories }: Props) {
   const router = useRouter();
   const [matches, setMatches] = React.useState(initialMatches);
   const connected = useLiveMatches(tournamentId, setMatches, !completed);
@@ -56,13 +58,24 @@ export function LiveSections({ tournamentId, completed, initialMatches, entries,
     .filter((m) => isDone(m) && m.result_reason !== "BYE")
     .sort((x, y) => (y.finished_at ?? "").localeCompare(x.finished_at ?? ""));
 
-  const champions = categories
+  // Podium per category: final winner, runner-up, and the losing semi-finalists.
+  const loserOf = (m: MatchWithGames) => (m.winner_side === "A" ? m.entry_b_id : m.entry_a_id);
+  const winnerOf = (m: MatchWithGames) => (m.winner_side === "A" ? m.entry_a_id : m.entry_b_id);
+  const podiums = categories
     .map((c) => {
-      const final = matches.find((m) => m.category_id === c.id && m.position !== null && m.round === rounds[c.id] && isDone(m));
-      const winner = final?.winner_side ? (final.winner_side === "A" ? final.entry_a_id : final.entry_b_id) : null;
-      return winner && names[winner] ? { category: c.name, name: names[winner] } : null;
+      const last = rounds[c.id];
+      const final = matches.find((m) => m.category_id === c.id && m.position !== null && m.round === last && isDone(m));
+      if (!final?.winner_side) return null;
+      const semis = last > 1 ? matches.filter((m) => m.category_id === c.id && m.round === last - 1 && isDone(m) && m.winner_side) : [];
+      return {
+        category: c.name,
+        gold: names[winnerOf(final) ?? ""],
+        silver: names[loserOf(final) ?? ""],
+        bronze: semis.map((m) => names[loserOf(m) ?? ""]).filter(Boolean),
+      };
     })
-    .filter(Boolean) as { category: string; name: string }[];
+    .filter(Boolean) as { category: string; gold: string; silver: string; bronze: string[] }[];
+  const matchHref = (m: MatchWithGames) => `/t/${slug}/m/${m.id}`;
 
   return (
     <>
@@ -73,14 +86,31 @@ export function LiveSections({ tournamentId, completed, initialMatches, entries,
         </p>
       )}
 
-      {champions.length > 0 && (
+      {podiums.length > 0 && (
         <section>
-          <h2 className="font-display text-3xl">Champions</h2>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {champions.map((c) => (
-              <li key={c.category} className="rounded-md bg-court px-4 py-3 text-court-line">
-                <p className="text-sm opacity-85">{c.category}</p>
-                <p className="font-display text-2xl">{c.name}</p>
+          <h2 className="font-display text-3xl">{completed ? "Champions" : "Winners so far"}</h2>
+          <ul className="mt-4 grid gap-4 md:grid-cols-2">
+            {podiums.map((p) => (
+              <li key={p.category} className="overflow-hidden rounded-lg border border-line">
+                <p className="bg-court px-4 py-2 text-sm font-semibold text-court-line">{p.category}</p>
+                <dl className="divide-y divide-line">
+                  <div className="flex items-baseline justify-between gap-3 px-4 py-3">
+                    <dt className="text-sm text-ink-soft">Winner</dt>
+                    <dd className="font-display text-2xl">{p.gold}</dd>
+                  </div>
+                  {p.silver && (
+                    <div className="flex items-baseline justify-between gap-3 px-4 py-2.5">
+                      <dt className="text-sm text-ink-soft">Runner-up</dt>
+                      <dd className="font-semibold">{p.silver}</dd>
+                    </div>
+                  )}
+                  {p.bronze.length > 0 && (
+                    <div className="flex items-baseline justify-between gap-3 px-4 py-2.5">
+                      <dt className="text-sm text-ink-soft">Semi-finalists</dt>
+                      <dd className="text-right">{p.bronze.join(", ")}</dd>
+                    </div>
+                  )}
+                </dl>
               </li>
             ))}
           </ul>
@@ -92,7 +122,7 @@ export function LiveSections({ tournamentId, completed, initialMatches, entries,
           <h2 className="font-display text-3xl">On court now</h2>
           <ul className="mt-4 grid gap-4 md:grid-cols-2">
             {live.map((m) => (
-              <LiveCard key={m.id} m={m} names={names} court={m.court_id ? courtName[m.court_id] : null} label={label(m)} />
+              <LiveCard key={m.id} m={m} names={names} court={m.court_id ? courtName[m.court_id] : null} label={label(m)} href={matchHref(m)} />
             ))}
           </ul>
         </section>
@@ -128,7 +158,8 @@ export function LiveSections({ tournamentId, completed, initialMatches, entries,
               const winnerId = m.winner_side === "A" ? m.entry_a_id : m.entry_b_id;
               const loserId = m.winner_side === "A" ? m.entry_b_id : m.entry_a_id;
               return (
-                <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <li key={m.id}>
+                  <Link href={matchHref(m)} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:bg-surface-2 sm:px-2">
                   <span className="min-w-0">
                     <span className="block truncate">
                       <strong>{winnerId ? names[winnerId] : "?"}</strong> beat {loserId ? names[loserId] : "?"}
@@ -140,6 +171,7 @@ export function LiveSections({ tournamentId, completed, initialMatches, entries,
                       ? REASON_LABEL[m.result_reason]
                       : m.games.map((g) => (m.winner_side === "A" ? `${g.score_a}–${g.score_b}` : `${g.score_b}–${g.score_a}`)).join(", ")}
                   </span>
+                  </Link>
                 </li>
               );
             })}
@@ -169,7 +201,19 @@ export function LiveSections({ tournamentId, completed, initialMatches, entries,
   );
 }
 
-function LiveCard({ m, names, court, label }: { m: MatchWithGames; names: Record<string, string>; court: string | null; label: string }) {
+function LiveCard({
+  m,
+  names,
+  court,
+  label,
+  href,
+}: {
+  m: MatchWithGames;
+  names: Record<string, string>;
+  court: string | null;
+  label: string;
+  href: string;
+}) {
   const n = { A: names[m.entry_a_id!], B: names[m.entry_b_id!] };
   const call = callout(m, n);
   return (
@@ -197,7 +241,12 @@ function LiveCard({ m, names, court, label }: { m: MatchWithGames; names: Record
           <span className="font-score w-[2ch] text-right text-5xl">{side === "A" ? m.score_a : m.score_b}</span>
         </div>
       ))}
-      {call && <p className="mt-3 text-sm font-semibold text-warn">{call}</p>}
+      <p className="mt-3 flex items-center justify-between gap-2 text-sm">
+        <span className="font-semibold text-ink">{call ?? ""}</span>
+        <Link href={href} className="shrink-0 font-semibold text-court underline underline-offset-4">
+          Commentary
+        </Link>
+      </p>
     </li>
   );
 }
