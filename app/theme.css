@@ -1,0 +1,106 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   ShuttleLive theme — the ONLY file to edit when changing colours or fonts.
+
+   1. Brand palette   (raw hex values)
+   2. Semantic roles  (what each colour is used for)
+   3. Tailwind names  (bg-court, text-ink-soft, border-line, …)
+   4. shadcn/ui vars  (so components in components/ui follow the brand)
+
+   Change a hex in section 1 and every page, button and court updates.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* 1. Brand palette */
+:root {
+  --sl-paper: #ffffff;
+  --sl-stone: #f8fafc;
+  --sl-ink: #09090b;
+  --sl-slate: #64748b;
+  --sl-rule: #e2e8f0;
+  --sl-court: #059669; /* badminton court green */
+  --sl-emerald: #10b981; /* live / point won */
+  --sl-amber: #f59e0b; /* interval, deuce, undo */
+  --sl-rose: #f43f5e; /* fault, retirement, errors */
+}
+
+/* 2. Semantic roles — light */
+:root {
+  --surface: var(--sl-paper);
+  --surface-2: var(--sl-stone);
+  --ink: var(--sl-ink);
+  --ink-soft: var(--sl-slate);
+  --line: var(--sl-rule);
+  --court: var(--sl-court);
+  --court-deep: color-mix(in oklab, var(--sl-court) 72%, var(--sl-ink));
+  --court-line: var(--sl-paper);
+  --live: var(--sl-emerald);
+  --warn: var(--sl-amber);
+  --fault: var(--sl-rose);
+  --on-dark: var(--sl-paper);
+}
+
+/* 2b. Semantic roles — dark (toggled by a .dark class on <html>) */
+.dark {
+  --surface: var(--sl-ink);
+  --surface-2: color-mix(in oklab, var(--sl-ink) 92%, var(--sl-paper));
+  --ink: var(--sl-stone);
+  --ink-soft: color-mix(in oklab, var(--sl-slate) 70%, var(--sl-paper));
+  --line: color-mix(in oklab, var(--sl-ink) 82%, var(--sl-paper));
+}
+
+/* 3. Tailwind colour + font names */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-court: var(--court);
+  --color-court-deep: var(--court-deep);
+  --color-court-line: var(--court-line);
+  --color-live: var(--live);
+  --color-warn: var(--warn);
+  --color-fault: var(--fault);
+  --color-on-dark: var(--on-dark);
+
+  /* Fonts: Barlow for text, Barlow Condensed for scores and headlines.
+     To change them, swap the imports in app/layout.tsx. */
+  --font-sans: var(--font-text), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-condensed), "Arial Narrow", sans-serif;
+}
+
+/* 4. shadcn/ui variables mapped onto the brand */
+:root,
+.dark {
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--court);
+  --primary-foreground: var(--sl-paper);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--ink);
+  --destructive: var(--fault);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--court);
+  --chart-1: var(--court);
+  --chart-2: var(--live);
+  --chart-3: var(--warn);
+  --chart-4: var(--fault);
+  --chart-5: var(--ink-soft);
+  --radius: 0.5rem;
+  --sidebar: var(--surface-2);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--court);
+  --sidebar-primary-foreground: var(--sl-paper);
+  --sidebar-accent: var(--surface);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--court);
+}
