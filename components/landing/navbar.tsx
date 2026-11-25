@@ -25,37 +25,45 @@ export function LandingNavbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo />
-        <nav className="flex items-center gap-1 text-sm font-medium sm:gap-2">
-          <Link href="/#tournaments" className="rounded-md px-3 py-2 text-ink-soft hover:text-ink">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
+        <Logo className="shrink-0" />
+        <nav className="flex shrink-0 items-center gap-1 text-xs font-medium sm:gap-2 sm:text-sm">
+          <Link
+            href="/#tournaments"
+            className="hidden whitespace-nowrap rounded-md px-3 py-2 text-ink-soft hover:text-ink sm:inline-block"
+          >
             Tournaments
           </Link>
           {signedIn ? (
             <>
               <Link
                 href="/dashboard"
-                className="rounded-md px-3 py-2 text-ink-soft hover:text-ink"
+                className="whitespace-nowrap rounded-md px-2.5 py-2 text-ink-soft hover:text-ink sm:px-3"
               >
                 Dashboard
               </Link>
               <Link
                 href="/dashboard/new"
-                className="rounded-md bg-ink px-4 py-2 font-semibold text-surface hover:bg-court"
+                className="whitespace-nowrap rounded-md bg-ink px-3 py-2 font-semibold text-surface hover:bg-court sm:px-4"
               >
-                + New tournament
+                <span className="sm:hidden">+ New</span>
+                <span className="hidden sm:inline">+ New tournament</span>
               </Link>
             </>
           ) : (
             <>
-              <Link href="/sign-in" className="rounded-md px-3 py-2 text-ink-soft hover:text-ink">
+              <Link
+                href="/sign-in"
+                className="whitespace-nowrap rounded-md px-2.5 py-2 text-ink-soft hover:text-ink sm:px-3"
+              >
                 Sign in
               </Link>
               <Link
                 href="/sign-up"
-                className="rounded-md bg-ink px-4 py-2 font-semibold text-surface hover:bg-court"
+                className="whitespace-nowrap rounded-md bg-ink px-3 py-2 font-semibold text-surface hover:bg-court sm:px-4"
               >
-                Create a tournament
+                <span className="sm:hidden">Host event</span>
+                <span className="hidden sm:inline">Create a tournament</span>
               </Link>
             </>
           )}

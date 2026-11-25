@@ -9,7 +9,8 @@ const personaWs = personaOrigin.replace(/^http/, "ws");
 // SRS SEC-09. Scripts need 'unsafe-inline' for Next.js hydration without nonces.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' blob:${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabaseOrigin}`,
   "font-src 'self' data:",
