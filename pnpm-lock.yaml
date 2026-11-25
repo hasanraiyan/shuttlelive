@@ -169,6 +169,15 @@ importers:
       '@base-ui/react':
         specifier: ^1.9.0
         version: 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@personaai/adapters':
+        specifier: ^0.18.0
+        version: 0.18.0(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@3.25.76)
+      '@personaai/avatar':
+        specifier: ^0.3.4
+        version: 0.3.4(@personaai/react@0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      '@personaai/react':
+        specifier: ^0.31.8
+        version: 0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@shadcn/react':
         specifier: ^0.3.1
         version: 0.3.1(@types/react@19.3.0)(react@19.3.0)
@@ -205,6 +214,9 @@ importers:
       next:
         specifier: 16.4.6
         version: 16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      orb-ui:
+        specifier: ^0.10.0
+        version: 0.10.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -271,6 +283,9 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@ag-ui/core@0.0.57':
+    resolution: {integrity: sha512-gho1OWjNE6E3Rl7ZEZ1wr2CEpUHjLFU0FqzCZZk439TicLu+BfLCMkMokB07bMGlRmbJ60hM6LW60iOVauCx+Q==}
 
   '@alloc/quick-lru@5.3.0':
     resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==}
@@ -807,6 +822,79 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@personaai/adapters@0.18.0':
+    resolution: {integrity: sha512-+mW9+jZiuTXbb+4p65wQyM0uMPXUsXtJBfgRXvK8sob+wKITNUgmM9T3eNvNTpMWHeh3271MW+6ZLBzEprgziQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@nestjs/common': ^10.0.0 || ^11.0.0
+      '@nestjs/core': ^10.0.0 || ^11.0.0
+      express: '>=4'
+      next: '>=14'
+      react: '>=18.0.0'
+      reflect-metadata: ^0.1.13 || ^0.2.0
+      rxjs: ^7.0.0
+    peerDependenciesMeta:
+      '@nestjs/common':
+        optional: true
+      '@nestjs/core':
+        optional: true
+      express:
+        optional: true
+      next:
+        optional: true
+      react:
+        optional: true
+      reflect-metadata:
+        optional: true
+      rxjs:
+        optional: true
+
+  '@personaai/avatar@0.3.4':
+    resolution: {integrity: sha512-O7y2mSHjWI0r5m6qgN62MGoHMSRdRZjG8vm8Yr1fyxFUpfbH7B42mopQn88TqYn5TA4VDxFbNfTh77SUYzCgOg==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@personaai/react': '>=0.31.0'
+      react: '>=18.0.0'
+    peerDependenciesMeta:
+      '@personaai/react':
+        optional: true
+      react:
+        optional: true
+
+  '@personaai/logger@0.1.0':
+    resolution: {integrity: sha512-ra5T+aBNzDmiabJ161y87SJJT9x3MHuFfAL1UCxSY3IO6AOJtF5UcXdsLVcxkugeOIto6Ppsm+adGLLR9s50Kw==}
+    engines: {node: '>=18'}
+
+  '@personaai/react@0.31.8':
+    resolution: {integrity: sha512-/9KhSZRWrdd70LK2kuAJchc6GvfHTqjwabfb6fUsdgvnZjnI/MdDd9BlspgOZ2IECPeU9b4GPJbhE/KbFNXU3A==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+
+  '@personaai/runtime@0.26.0':
+    resolution: {integrity: sha512-vX1nu+1CSDXPPpiljq14/GlA1PkOTtF+1t2UfOqiV6U67NL1NwoQl7LYeIuF5dVVJK4B0bmOcj+kxy06A/qymA==}
+    engines: {node: '>=18'}
+
+  '@personaai/sdk@0.29.0':
+    resolution: {integrity: sha512-rick11oNGcTSV0rVp5bCJdcu1g1+mjzaOBCUf//8FnC5CHDs/OQlqpqSyU0dvXR+SYUOb46qrbrDgZAey7jFOw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.23.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@personaai/sdk@0.32.0':
+    resolution: {integrity: sha512-KL+ZXskly1DqTdiutVotQrC9GMeIhb9sIlXbz/fGM7iR8c9yRuCOESNLB2DRwJLo1k2cFFIHsGyKw6+y201NHQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.23.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
 
   '@radix-ui/primitive@1.2.0':
     resolution: {integrity: sha512-KABY+VMIRPJL+Vyzv/335FEhXXD/xDv8BMb1kl48/aXJZMH0LtHCTx5ga5RnxaEP3nZHtmTLf1P9vanmFX46bw==}
@@ -2954,6 +3042,16 @@ packages:
     resolution: {integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==}
     engines: {node: '>=18'}
 
+  orb-ui@0.10.0:
+    resolution: {integrity: sha512-2y7ybcJsJnw1YXZOUhMgECZEX9vscLyjsJYLlQwih5F/TTrITd/W7qWEMKjv8M1z31q72KCd76ozTNxr5PjVkA==}
+    peerDependencies:
+      livekit-client: '>=2.20.0 <3'
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+    peerDependenciesMeta:
+      livekit-client:
+        optional: true
+
   own-keys@1.0.2:
     resolution: {integrity: sha512-19YVAg7T+WTrxggPukVq7DjTv6+PJ867TmhCvBsYwmbFCsZd344rq2Ld1p0wo8f8Qrrhgp82c6FJRqdXWtSEhg==}
     engines: {node: '>= 0.4'}
@@ -3076,6 +3174,10 @@ packages:
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
+
+  rcp-sdk@0.1.1:
+    resolution: {integrity: sha512-656fAOyv2HnDwULGi3A19nsi/wR+3AvSgUnfhjc31PJzb2zS4EOficPFoqXb3wTx7ynIGs7+DB4xteXKeKbAwA==}
+    engines: {node: '>=18'}
 
   react-day-picker@10.0.2:
     resolution: {integrity: sha512-QetiKtZWE9Uaw/pM/SYNv6WPYOTRnSJ2puL0GgwkmUFMIwiY0dtjH1W4B7DOVXVNQM0ZOClGpH/heOfBSzWeiA==}
@@ -3702,6 +3804,10 @@ packages:
 
 snapshots:
 
+  '@ag-ui/core@0.0.57':
+    dependencies:
+      zod: 3.25.76
+
   '@alloc/quick-lru@5.3.0': {}
 
   '@babel/code-frame@7.29.7':
@@ -4225,6 +4331,54 @@ snapshots:
       fastq: 1.20.3
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@personaai/adapters@0.18.0(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@3.25.76)':
+    dependencies:
+      '@personaai/logger': 0.1.0
+      '@personaai/react': 0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@personaai/runtime': 0.26.0(zod@3.25.76)
+      '@personaai/sdk': 0.32.0(zod@3.25.76)
+    optionalDependencies:
+      next: 16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+    transitivePeerDependencies:
+      - react-dom
+      - zod
+
+  '@personaai/avatar@0.3.4(@personaai/react@0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
+    optionalDependencies:
+      '@personaai/react': 0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+
+  '@personaai/logger@0.1.0': {}
+
+  '@personaai/react@0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@personaai/logger': 0.1.0
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
+  '@personaai/runtime@0.26.0(zod@3.25.76)':
+    dependencies:
+      '@ag-ui/core': 0.0.57
+      '@personaai/sdk': 0.29.0(zod@3.25.76)
+      rcp-sdk: 0.1.1
+    transitivePeerDependencies:
+      - zod
+
+  '@personaai/sdk@0.29.0(zod@3.25.76)':
+    dependencies:
+      '@ag-ui/core': 0.0.57
+      '@personaai/logger': 0.1.0
+    optionalDependencies:
+      zod: 3.25.76
+
+  '@personaai/sdk@0.32.0(zod@3.25.76)':
+    dependencies:
+      '@ag-ui/core': 0.0.57
+      '@personaai/logger': 0.1.0
+    optionalDependencies:
+      zod: 3.25.76
 
   '@radix-ui/primitive@1.2.0': {}
 
@@ -6396,6 +6550,11 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.2.0
 
+  orb-ui@0.10.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
   own-keys@1.0.2:
     dependencies:
       call-bound: 1.0.4
@@ -6497,6 +6656,10 @@ snapshots:
       yargs: 15.4.1
 
   queue-microtask@1.2.3: {}
+
+  rcp-sdk@0.1.1:
+    dependencies:
+      zod: 3.25.76
 
   react-day-picker@10.0.2(@types/react@19.3.0)(react@19.3.0):
     dependencies:

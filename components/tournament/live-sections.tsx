@@ -3,10 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Eye } from "lucide-react";
 import { LocalTime } from "@/components/app/local-time";
 import { Bracket } from "@/components/tournament/bracket";
 import { ScoreFlip } from "@/components/ui/score-flip";
-import { useLiveMatches } from "@/lib/live";
+import { useLiveMatches, useLiveViewers } from "@/lib/live";
 import { byOrderOfPlay } from "@/lib/schedule";
 import { REASON_LABEL, callout, isActive, isDone, roundName } from "@/lib/scoring";
 import type { Category, Court, Entry, MatchWithGames } from "@/lib/types";
@@ -31,6 +32,7 @@ export function LiveSections({ tournamentId, completed, slug, initialMatches, en
   const router = useRouter();
   const [matches, setMatches] = React.useState(initialMatches);
   const connected = useLiveMatches(tournamentId, setMatches, !completed);
+  const viewers = useLiveViewers(tournamentId, { enabled: !completed });
 
   const names = React.useMemo(() => Object.fromEntries(entries.map((e) => [e.id, e.display_name])), [entries]);
 
@@ -81,10 +83,19 @@ export function LiveSections({ tournamentId, completed, slug, initialMatches, en
   return (
     <>
       {!completed && (
-        <p className="flex items-center gap-2 text-xs text-ink-soft" aria-live="polite">
-          <span className={cn("size-2 rounded-full", connected ? "bg-live" : "bg-warn")} aria-hidden="true" />
-          {connected ? "Scores update live" : "Connecting to live scores…"}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-soft" aria-live="polite">
+          <p className="flex items-center gap-2">
+            <span className={cn("size-2 rounded-full", connected ? "bg-live" : "bg-warn")} aria-hidden="true" />
+            {connected ? "Scores update live" : "Connecting to live scores…"}
+          </p>
+          {viewers !== null && viewers > 0 && (
+            <p className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 py-1 font-medium text-ink">
+              <Eye className="size-3.5 text-court" aria-hidden="true" />
+              <span className="tabular-nums">{viewers}</span>
+              <span>{viewers === 1 ? "person watching" : "people watching"}</span>
+            </p>
+          )}
+        </div>
       )}
 
       {podiums.length > 0 && (

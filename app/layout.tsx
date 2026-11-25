@@ -3,6 +3,7 @@ import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ShuttleAssistant } from "@/components/persona/shuttle-assistant";
 
 // Fonts are named here; how they are used is set in app/theme.css.
 const text = Barlow({
@@ -31,7 +32,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${text.variable} ${condensed.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          {children}
+          <ShuttleAssistant />
+        </TooltipProvider>
         <Analytics />
       </body>
     </html>

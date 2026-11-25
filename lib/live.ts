@@ -99,3 +99,47 @@ export function useLiveMatches(
 
   return connected;
 }
+
+/**
+ * Tracks how many people are currently viewing a tournament (including its
+ * match pages) via Supabase Realtime Presence. No database writes required.
+ */
+export function useLiveViewers(
+  tournamentId: string,
+  opts: { enabled?: boolean; track?: boolean } = {}
+) {
+  const { enabled = true, track = true } = opts;
+  const [count, setCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    const supabase = createClient();
+    const key =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const channel = supabase.channel(`viewers-${tournamentId}`, {
+      config: { presence: { key } },
+    });
+
+    const updateCount = () => {
+      const state = channel.presenceState();
+      setCount(Object.keys(state).length);
+    };
+
+    channel
+      .on("presence", { event: "sync" }, updateCount)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED" && track) {
+          void channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [tournamentId, enabled, track]);
+
+  return count;
+}

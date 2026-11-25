@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { Eye } from "lucide-react";
 import { LeadChart, SidesLegend } from "@/components/tournament/lead-chart";
 import { ShareLinks } from "@/components/tournament/share-links";
 import { ScoreFlip } from "@/components/ui/score-flip";
 import { buildCommentary, isKeyLine, type Line } from "@/lib/commentary";
-import { useLiveMatches } from "@/lib/live";
+import { useLiveMatches, useLiveViewers } from "@/lib/live";
 import { matchStats, matchSummary, type SideStats } from "@/lib/match-stats";
 import { REASON_LABEL, STATUS_LABEL, callout, isDone } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/client";
@@ -37,6 +38,7 @@ export function MatchCenter(props: Props) {
   const [keyOnly, setKeyOnly] = React.useState(false);
   const finished = isDone(initial);
   const connected = useLiveMatches(tournamentId, setMatches, !finished);
+  const viewers = useLiveViewers(tournamentId, { enabled: !finished });
   const m = matches.find((x) => x.id === initial.id) ?? initial;
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- times render in the viewer's timezone after mount
@@ -160,9 +162,17 @@ export function MatchCenter(props: Props) {
                   : STATUS_LABEL[m.status])}
           </span>
           {!finished && (
-            <span className="flex shrink-0 items-center gap-1.5 text-xs text-ink-soft">
-              <span className={cn("size-2 rounded-full", connected ? "bg-live" : "bg-warn")} aria-hidden="true" />
-              {connected ? "Updating live" : "Connecting…"}
+            <span className="flex shrink-0 items-center gap-3 text-xs text-ink-soft">
+              {viewers !== null && viewers > 0 && (
+                <span className="inline-flex items-center gap-1 font-medium text-ink">
+                  <Eye className="size-3.5 text-court" aria-hidden="true" />
+                  <span className="tabular-nums">{viewers}</span>
+                </span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <span className={cn("size-2 rounded-full", connected ? "bg-live" : "bg-warn")} aria-hidden="true" />
+                {connected ? "Updating live" : "Connecting…"}
+              </span>
             </span>
           )}
         </div>

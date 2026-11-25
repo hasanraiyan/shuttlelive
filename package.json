@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@personaai/adapters": "^0.18.0",
+    "@personaai/avatar": "^0.3.4",
+    "@personaai/react": "^0.31.8",
     "@shadcn/react": "^0.3.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
@@ -22,6 +25,7 @@
     "input-otp": "^1.5.0",
     "lucide-react": "^1.78.0",
     "next": "16.4.6",
+    "orb-ui": "^0.10.0",
     "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-day-picker": "^10.0.2",
