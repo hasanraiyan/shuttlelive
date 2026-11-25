@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
@@ -34,7 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <TooltipProvider>
           {children}
-          <ShuttleAssistant />
+          <Suspense fallback={null}>
+            <ShuttleAssistant />
+          </Suspense>
         </TooltipProvider>
         <Analytics />
       </body>

@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@personaai/react': 0.31.8
+
 importers:
 
   .:
@@ -176,7 +179,7 @@ importers:
         specifier: ^0.3.4
         version: 0.3.4(@personaai/react@0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@personaai/react':
-        specifier: ^0.31.8
+        specifier: 0.31.8
         version: 0.31.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@shadcn/react':
         specifier: ^0.3.1
@@ -855,7 +858,7 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
-      '@personaai/react': '>=0.31.0'
+      '@personaai/react': 0.31.8
       react: '>=18.0.0'
     peerDependenciesMeta:
       '@personaai/react':

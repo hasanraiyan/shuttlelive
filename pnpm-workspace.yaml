@@ -1,3 +1,7 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+
+# Force a single @personaai/react 0.31.8 everywhere (including inside @personaai/adapters).
+overrides:
+  "@personaai/react": 0.31.8
