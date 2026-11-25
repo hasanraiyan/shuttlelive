@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Logo } from "@/components/layout/app-icon";
+import { VoiceAssistantPolicy } from "@/components/persona/voice-policy";
 import { LiveSections } from "@/components/tournament/live-sections";
 import { ShareLinks } from "@/components/tournament/share-links";
 import { VenueMap } from "@/components/tournament/venue-map";
@@ -59,6 +60,7 @@ function TournamentView({ bundle: b, draft }: { bundle: Bundle; draft: boolean }
 
   return (
     <div className="flex flex-1 flex-col" style={brandVars(t.brand_primary, t.brand_accent)}>
+      <VoiceAssistantPolicy enabled={t.voice_assistant_enabled !== false} />
       {draft && (
         <p className="bg-warn/20 px-4 py-2 text-center text-sm">
           This is a draft. Only you and your team can see it.{" "}

@@ -200,3 +200,18 @@ export async function setTournamentOrganization(tournamentId: string, orgId: str
   revalidatePath("/dashboard");
   return { ok: true, message: orgId ? "Moved to the organization." : "Moved to your personal tournaments." };
 }
+
+/** Enable or disable the AI voice assistant on the tournament's public pages. */
+export async function setVoiceAssistantEnabled(tournamentId: string, enabled: boolean): Promise<ActionResult> {
+  if (!uuid.safeParse(tournamentId).success) return { ok: false, error: "Invalid tournament." };
+  if (typeof enabled !== "boolean") return { ok: false, error: "Invalid setting." };
+  const { supabase } = await requireUser();
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ voice_assistant_enabled: enabled })
+    .eq("id", tournamentId);
+  if (error) return { ok: false, error: explainDbError(error.message) };
+  tournamentChanged(tournamentId);
+  revalidatePath("/dashboard");
+  return { ok: true, message: enabled ? "Voice assistant enabled." : "Voice assistant disabled." };
+}

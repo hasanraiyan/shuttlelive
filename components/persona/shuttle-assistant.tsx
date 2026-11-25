@@ -228,6 +228,16 @@ function ShuttleTools() {
   return null;
 }
 
+const POLICY_EVENT = "shuttlelive:voice-policy";
+function subscribePolicy(cb: () => void) {
+  window.addEventListener(POLICY_EVENT, cb);
+  return () => window.removeEventListener(POLICY_EVENT, cb);
+}
+function getPolicySnapshot() {
+  if (typeof document === "undefined") return "on";
+  return document.documentElement.dataset.voiceAssistant ?? "on";
+}
+
 export function ShuttleAssistant({
   voiceAgentId = process.env.NEXT_PUBLIC_VOICE_AGENT_ID ?? "",
 }: {
@@ -235,6 +245,8 @@ export function ShuttleAssistant({
 }) {
   const pathname = usePathname();
   const isPublicPage = pathname === "/" || pathname.startsWith("/t/");
+  const policy = React.useSyncExternalStore(subscribePolicy, getPolicySnapshot, () => "on");
+  const allowedOnPage = isPublicPage && !(pathname.startsWith("/t/") && policy === "off");
 
   React.useEffect(() => {
     if (voiceAgentId) ensureVisitorCookie();
@@ -248,7 +260,7 @@ export function ShuttleAssistant({
         <ShuttleTools />
         <VoiceFab
           agentId={voiceAgentId}
-          hideWhenIdle={!isPublicPage}
+          hideWhenIdle={!allowedOnPage}
           proactiveGreeting="User joined the call on ShuttleLive. Greet them warmly and offer to help find live badminton tournaments, check court scores, or navigate the site."
         />
       </AvatarSlotProvider>

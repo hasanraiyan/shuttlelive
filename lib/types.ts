@@ -35,6 +35,7 @@ export type Tournament = {
   kind: "TOURNAMENT" | "QUICK";
   brand_primary: string | null;
   brand_accent: string | null;
+  voice_assistant_enabled?: boolean;
   organization_id: string | null;
   created_at: string;
   updated_at: string;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Logo } from "@/components/layout/app-icon";
+import { VoiceAssistantPolicy } from "@/components/persona/voice-policy";
 import { MatchCenter } from "@/components/tournament/match-center";
 import { brandVars } from "@/lib/color";
 import { getDraftCommentary, getPublicBundle, getPublicCommentary } from "@/lib/data";
@@ -51,6 +52,7 @@ async function Content({ params }: { params: Promise<{ slug: string; matchId: st
 
   return (
     <div className="flex flex-1 flex-col" style={brandVars(b.tournament.brand_primary, b.tournament.brand_accent)}>
+      <VoiceAssistantPolicy enabled={b.tournament.voice_assistant_enabled !== false} />
       {draft && <p className="bg-warn/20 px-4 py-2 text-center text-sm">This is a draft. Only you and your team can see it.</p>}
       <main className="flex-1 px-4 py-8 sm:px-6 sm:py-10">
         <MatchCenter

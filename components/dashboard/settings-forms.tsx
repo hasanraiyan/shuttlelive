@@ -9,9 +9,11 @@ import {
   setBrandColors,
   setTournamentImage,
   setTournamentOrganization,
+  setVoiceAssistantEnabled,
   updateSlug,
   updateTournamentDetails,
 } from "@/lib/actions/tournaments";
+import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
 import { MEDIA_BUCKET, mediaUrl } from "@/lib/supabase/env";
 import { HEX, brandVars, readableOnWhite } from "@/lib/color";
@@ -448,6 +450,41 @@ export function OrganizationForm({ t, orgs }: { t: Tournament; orgs: { id: strin
             ))}
           </Select>
         </div>
+      </div>
+      {error && (
+        <div className="mt-3">
+          <Notice tone="error">{error}</Notice>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/** Toggle the AI voice avatar assistant on this tournament's public pages. */
+export function VoiceAssistantForm({ t }: { t: Tournament }) {
+  const { pending, error, run } = useAction();
+  const enabled = t.voice_assistant_enabled !== false;
+
+  return (
+    <Section
+      title="Voice assistant"
+      description="Show the AI voice avatar on this tournament's public page and match pages so visitors can ask about live scores and draws."
+    >
+      <div className="flex max-w-2xl items-center justify-between gap-4 rounded-lg border border-line bg-surface-2 px-4 py-3">
+        <div>
+          <label htmlFor="voice-assistant-toggle" className="text-sm font-semibold text-ink">
+            Enable AI voice assistant
+          </label>
+          <p className="text-xs text-ink-soft">
+            {enabled ? "Visible on your public tournament and match pages." : "Hidden on your public tournament and match pages."}
+          </p>
+        </div>
+        <Switch
+          id="voice-assistant-toggle"
+          checked={enabled}
+          disabled={pending}
+          onCheckedChange={(next) => run(() => setVoiceAssistantEnabled(t.id, next))}
+        />
       </div>
       {error && (
         <div className="mt-3">

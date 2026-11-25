@@ -13,6 +13,7 @@ import {
   ImagesForm,
   OrganizationForm,
   SlugForm,
+  VoiceAssistantForm,
 } from "@/components/dashboard/settings-forms";
 import { useTournament } from "@/components/dashboard/tournament-context";
 import { ShareLinks } from "@/components/tournament/share-links";
@@ -71,6 +72,7 @@ export function SettingsTab() {
       <DetailsForm key={t.updated_at} t={t} />
       <ImagesForm t={t} />
       <AppearanceForm key={`${t.brand_primary}-${t.brand_accent}`} t={t} />
+      <VoiceAssistantForm t={t} />
       <OrganizationForm t={t} orgs={myOrgs} />
       <CourtsForm tid={t.id} courts={b.courts} />
       <SlugForm key={t.slug} t={t} />
