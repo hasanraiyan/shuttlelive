@@ -11,5 +11,6 @@ import { tags } from "@/lib/tags";
 export function tournamentChanged(tid: string, opts: { slugs?: string[]; dashboard?: boolean } = {}) {
   if (opts.dashboard !== false) revalidatePath(`/dashboard/t/${tid}`, "layout");
   revalidateTag(tags.tournament(tid), "max");
+  revalidateTag(tags.publicTournaments, "max");
   for (const s of opts.slugs ?? []) revalidateTag(tags.slug(s), "max");
 }
